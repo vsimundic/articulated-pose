@@ -1,0 +1,6 @@
+dataset/
+results/
+articulated-pose.code-workspace
+.vscode/
+__pycache__/
+download_sapien.py

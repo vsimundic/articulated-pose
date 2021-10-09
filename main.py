@@ -78,6 +78,7 @@ if __name__ == '__main__':
     tf_conf.gpu_options.allow_growth = True
 
     in_model_dir = conf.get_in_model_dir()
+
     ckpt = tf.train.get_checkpoint_state(in_model_dir)
     should_restore = (ckpt is not None) and (ckpt.model_checkpoint_path is not None)
     net = Network(n_max_parts=n_max_parts, config=conf, is_new_training=not should_restore)
@@ -92,6 +93,7 @@ if __name__ == '__main__':
                 print(var.name)
             print('\n \n ')
             checkpoint_path = ckpt.model_checkpoint_path
+
             print_tensors_in_checkpoint_file(file_name=checkpoint_path, tensor_name='', all_tensors=False, all_tensor_names=True)
             print('Restoring ' + checkpoint_path + ' ...')
             tf.train.Saver().restore(sess, checkpoint_path)
@@ -102,9 +104,14 @@ if __name__ == '__main__':
 
         print('Loading data...')
         if is_debug:
-            data_pts =  train_data.fetch_data_at_index(1)
-            print(data_pts)
+            try:
+                data_pts =  train_data.fetch_data_at_index(1)
+                print(data_pts)
+            except:
+                print("Didn't load train data. Moving on.")
+        
 
+        ### TESTING ###
         if is_testing:
             # batch testing
             print('Entering testing mode using test set')
@@ -121,15 +128,21 @@ if __name__ == '__main__':
             fixed_order=True,
             first_n=conf.get_train_data_first_n(),
             is_debug=is_debug)
+
             if args.data_mode == 'demo':
                 save_dir = conf.get_demo_prediction_dir()
             else:
                 save_dir = conf.get_test_prediction_dir()
-            net.predict_and_save(
+            
+            result = net.predict_and_save(
                 sess,
                 dset=test_data,
                 save_dir=save_dir,
             )
+
+            print(result)
+
+        ### TRAINING ###
         else:
             print('Entering training mode!!!')
             train_data = Dataset(

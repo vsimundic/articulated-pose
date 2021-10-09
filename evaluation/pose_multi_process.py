@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', default='unseen', help='which sub test set to choose')
     parser.add_argument('--nocs', default='ANCSH', help='which sub test set to choose')
-    parser.add_argument('--item', default='oven', help='object category for benchmarking')
+    parser.add_argument('--item', default='eyeglasses', help='object category for benchmarking')
     args = parser.parse_args()
 
     infos           = global_info()
@@ -30,9 +30,10 @@ if __name__ == '__main__':
     my_dir          = infos.base_path
     base_path       = my_dir + '/results/test_pred'
     choose_threshold = 0.1
-
+    
     # testing
     test_h5_path    = base_path + '/{}'.format(test_exp)
+    print("[DEBUG] current file: ", os.getcwd())
     all_test_h5     = os.listdir(test_h5_path)
     test_group      = get_test_group(all_test_h5, unseen_instances, domain=args.domain, spec_instances=special_ins)
 
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     file_name = directory + '/{}_{}_{}_{}_rt_ours_{}.pkl'.format(baseline_exp, args.domain, args.nocs, args.item, choose_threshold)
 
     # s_ind = 0
-    # e_ind = 10
+    # e_ind = 5
     # solver_ransac_nonlinear(s_ind, e_ind, test_exp, baseline_exp, choose_threshold, num_parts, test_group, problem_ins, rts_all, file_name)
 
     starttime = time.time()

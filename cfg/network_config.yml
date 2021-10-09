@@ -9,7 +9,7 @@ debug_mode: false
 # model parameters
 use_direct_regression: false
 direct_loss_multiplier: 1.0
-batch_size: 16
+batch_size: 8
 miou_loss_multiplier: 1.0
 nocs_loss_multiplier: 10.0
 gocs_loss_multiplier: 1.0

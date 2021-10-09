@@ -183,7 +183,12 @@ class Network(object):
 
         start_time = time.time()
         for epoch in range(1, n_epochs + 1):
+            
+            # for batch in train_data.create_iterator():
+            #     print("[DEBUG] batch: ", batch)
+
             for batch in train_data.create_iterator():
+                # print("[DEBUG] type batch: ", train_data.create_iterator())
                 feed_dict = self.create_feed_dict(batch, is_training=True)
                 step, _, summary, loss = sess.run([self.global_step, self.train_op, self.summary, self.total_loss], feed_dict=feed_dict)
 
@@ -218,8 +223,8 @@ class Network(object):
                     print('Done saving model at step {:d}.'.format(step))
 
         train_writer.close()
-        val1_writer.close()
-        val2_writer.close()
+        val_writer1.close()
+        val_writer2.close()
         elapsed_min = (time.time() - start_time) / 60
         print('Training finished.')
         print('Elapsed: {:.2f}m.'.format(elapsed_min))
@@ -275,8 +280,11 @@ class Network(object):
 
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
+        
         for batch in dset.create_iterator():
+
             feed_dict = self.create_feed_dict(batch, is_training=False)
+            
             loss_dict = {
                 'total_loss': self.total_loss,
                 'total_miou_loss': self.total_miou_loss,
@@ -303,7 +311,7 @@ class Network(object):
                 is_mixed=self.is_mixed,
                 W_reduced=False
             )
-            print('Finished {}/{}'.format(dset.get_last_batch_range()[1], dset.n_data), end='\r')
+            print('Finished {}/{}'.format(dset.get_last_batch_range()[1], dset.n_data), end='\n')
         losses.update((x, y / dset.n_data) for x, y in losses.items())
         msg = self.format_loss_result(losses)
         open(os.path.join(save_dir, 'test_loss.txt'), 'w').write(msg)
@@ -329,6 +337,7 @@ class Network(object):
         )
 
     def create_feed_dict(self, batch, is_training):
+        # print("[DEBUG] BATCH: ", batch)
         feed_dict = {
             self.P : batch['P'],
             self.is_training: is_training,

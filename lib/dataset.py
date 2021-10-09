@@ -12,14 +12,14 @@ import _init_paths
 from network_config import NetworkConfig
 from data_utils import calculate_factor_nocs, get_model_pts, write_pointcloud, get_urdf, split_dataset, get_urdf_mobility
 from d3_utils import point_3d_offset_joint
-from vis_utils import plot3d_pts, plot_arrows, plot_imgs
+from vis_utils import plot3d_pts, plot_arrows, plot_imgs, plot_arrows_list, plot_arrows_list_threshold
 from transformations import euler_matrix
 from global_info import global_info
 epsilon = 10e-8
 
 infos           = global_info()
 base_path       = infos.base_path
-group_dir       = infos.group_path
+group_path       = infos.group_path
 
 class Dataset:
     def __init__(self, root_dir, ctgy_obj, mode, n_max_parts, batch_size, name_dset='shape2motion', num_expr=0.01, domain=None, nocs_type='A', parametri_type='orthogonal', first_n=-1,  \
@@ -50,13 +50,16 @@ class Dataset:
             idx_txt = self.root_dir + '/splits/{}/{}/demo.txt'.format(ctgy_obj, num_expr)
         else:
             idx_txt = self.root_dir + '/splits/{}/{}/test.txt'.format(ctgy_obj, num_expr)
-        with open(idx_txt, "r", errors='replace') as fp:
+        
+        with open(idx_txt, "r") as fp:
             line = fp.readline()
+            # print("[DEBUG] line: {}".format(line))
             cnt  = 1
             while line:
                 # todos: test mode
                 hdf5_file = line.strip()
-                item = hdf5_file.split('.')[0].split('/')[-3]
+                item = hdf5_file.split('/')[-3]
+                # print("[DEBUG] aaaaaaa {}".format(item))
                 if mode=='test':
                     if domain=='seen' and (item not in infos.datasets[ctgy_obj].test_list):
                         self.hdf5_file_list.append(hdf5_file)
@@ -75,9 +78,21 @@ class Dataset:
         if first_n != -1:
             self.hdf5_file_list = self.hdf5_file_list[:first_n]
 
-        self.basename_list = [ "_".join(["{}".format(q) for q in p.split('.')[0].split('/')[-3:]]) for p in self.hdf5_file_list]
+        # print("[DEBUG] {}".format(self.hdf5_file_list))
+        self.basename_list = []
+        
+        for p in self.hdf5_file_list:
+            q = p.split('/')[-3:]
+            # for q in p.split('/')[-3:]:
+            #     if q[0] == '0002':
+            #         break
+            #     # print (p.split('/')[-3:])
+            self.basename_list.append("{}_{}_{}".format(q[0], q[1], q[2]))
+            #     # "_".join(["{}".format(q) for q in p.split('/')[-3:]])
+            # pass
         if is_debug:
             print('basename_list: ', self.basename_list[0])
+        
         self.n_data = len(self.hdf5_file_list)
         self.first_iteration_finished = False
         # whole URDF points, load all obj files
@@ -90,9 +105,10 @@ class Dataset:
         if self.is_testing or self.is_debug:
             print('Fetch {}th datapoint from {}'.format(i, path))
         # name = os.path.splitext(os.path.basename(path))[0]
-        item = path.split('.')[0].split('/')[-3]
+        item = path.split('/')[-3]
         norm_factor_instance = self.all_factors[item]
         corner_pts_instance  = self.all_corners[item]
+
         joints = self.all_joints[item]
         if self.is_debug:
             print('Now fetching {}th data from instance {} with norm_factors: {}'.format(i, item, norm_factor_instance))
@@ -105,7 +121,7 @@ class Dataset:
         if self.is_testing or self.is_debug:
             return data, path
         return data
-
+        
     def __iter__(self):
         self.current = 0
         if not self.fixed_order and self.first_iteration_finished:
@@ -133,19 +149,25 @@ class Dataset:
             data = []
             for i in range(step):
                 dp = self.fetch_data_at_index(self.current + i)
+                
                 if dp is not None:
+                    if type(dp) is dict:
+                        dp = [dp]
                     data.append(dp)
+            # print("[DEBUG] data: ", data)
             # if len(data) < step:
             #     for i in range(len(data), step):
             #         data.append(data[0])
             if not hasattr(self, 'data_matrix'):
                 self.data_matrix = {}
-                for key in data[0].keys():
-                    trailing_ones = np.full([len(data[0][key].shape)], 1, dtype=int)
-                    self.data_matrix[key] = np.tile(np.expand_dims(np.zeros_like(data[0][key]), axis=0), [self.n_data, *trailing_ones])
-            for key in data[0].keys():
+                # print("[DEBUG] data: {}".format(data))
+                
+                for key in data[0][0].keys():
+                    trailing_ones = np.full([len(data[0][0][key].shape)], 1, dtype=int)
+                    self.data_matrix[key] = np.tile(np.expand_dims(np.zeros_like(data[0][0][key]), axis=0), [self.n_data, *trailing_ones])
+            for key in data[0][0].keys():
                 try:
-                    batched_data[key] = np.stack([x[key] for x in data], axis=0)
+                    batched_data[key] = np.stack([x[0][key] for x in data], axis=0)
                     self.data_matrix[key][self.current:self.current+step, ...] = batched_data[key][0:step]
                 except:
                     print('error key is ', key)
@@ -164,6 +186,8 @@ class Dataset:
         return self.basename_list[l:r]
 
     def create_iterator(self):
+
+        # print("[DEBUG] AYYYYYYY RIP: ", self)
         return self
 
     def fetch_factors_nocs(self, obj_category, is_debug=False, is_gen=False):
@@ -225,7 +249,7 @@ class Dataset:
         return all_factors, all_corners
 
     def fetch_joints_params(self, obj_category, is_debug=False):
-        all_items   = os.listdir(self.root_dir + '/render/' + obj_category) #TODO: which one to choose? urdf or render?
+        all_items   = os.listdir(self.root_dir + '/urdf/' + obj_category) #TODO: which one to choose? urdf or render?
         all_joints  = {}
         root_dset   = self.root_dir
         for item in all_items:
@@ -705,7 +729,7 @@ if __name__=='__main__':
 
     random.seed(30)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_file', default='./network_config.yml', help='YAML configuration file')
+    parser.add_argument('--config_file', default='./cfg/network_config.yml', help='YAML configuration file')
     parser.add_argument('--dataset', default='shape2motion', help='name of dataset')
     parser.add_argument('--item', default='oven', help='name of the dataset we use')
     # parser.add_argument('--dataset', default='sapien', help='name of the dataset we use')
@@ -734,6 +758,8 @@ if __name__=='__main__':
     parser.add_argument('--cycle', action='store_true', help='whether we want to enforce cycle consistency on part and global nocs')
     parser.add_argument('--early_split_nocs', action='store_true', help='whether we want to predict parallelly for ')
     args = parser.parse_args()
+    # print("[DEBUG] CONFIG FILE: {}".format(args.config_file))
+    
 
     # config file fixed
     num_expr = args.num_expr
@@ -776,14 +802,18 @@ if __name__=='__main__':
         is_testing=is_testing,
         is_gen=is_gen)
 
-    # np.random.seed(0)
+    # np.random.seed(1561)
     # selected_index = np.random.randint(1000, size=20)
-    selected_index = np.arange(0, 10)
+    selected_index = np.arange(80, 81)
     # selected_index = [train_data.basename_list.index('0016_0_0')] + list(np.arange(0, len(train_data.basename_list)))
     for i in selected_index:
+        # print("[DEBUG] LOOOOOOOOOOOOOOOOOOOOOOOL")
+        # print("[DEBUG] i = {}]".format(i))
         basename =  train_data.basename_list[i]
         if basename.split('_')[0] not in test_ins:
+            print("[DEBUG] basename not in test_ins: {}".format(basename.split('_')[0]))
             continue
+
         instance = basename.split('_')[0]
         print('reading data point: ', i, train_data.basename_list[i])
         if is_debug or is_testing:

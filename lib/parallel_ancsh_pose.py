@@ -103,6 +103,7 @@ def ransac(dataset, model_estimator, model_verifier, inlier_th, niter=10000):
         if cur_score > best_score:
             best_model = cur_model
             best_inliers = cur_inliers
+            best_score = cur_score
     best_model = model_estimator(dataset, best_inliers)
     return best_model, best_inliers
 
@@ -443,7 +444,7 @@ if __name__ == '__main__':
     if platform.uname()[1] == 'viz1':
         my_dir       = '/home/xiaolong/ARCwork/6DPOSE'
     else:
-        my_dir       = '/work/cascades/lxiaol9/6DPOSE'
+        my_dir       = '.'
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', default='unseen', help='which sub test set to choose')
     parser.add_argument('--nocs', default='NAOCS', help='which sub test set to choose')
@@ -479,9 +480,9 @@ if __name__ == '__main__':
     else:
         problem_ins = []
     start_time = time.time()
-    rts_all = pickle.load( open('/work/cascades/lxiaol9/6DPOSE/results/test_pred/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, args.nocs, args.item), 'rb' ))
+    rts_all = pickle.load( open('./results/test_pred/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, args.nocs, args.item), 'rb' ))
 
-    directory = '/work/cascades/lxiaol9/6DPOSE/results/test_pred/pickle/{}'.format(main_exp)
+    directory = './results/test_pred/pickle/{}'.format(main_exp)
     file_name = directory + '/{}_{}_{}_{}_rt_ours_{}.pkl'.format(baseline_exp, args.domain, args.nocs, args.item, choose_threshold)
 
     s_ind = 0

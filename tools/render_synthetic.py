@@ -105,13 +105,16 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
 
     # instance-wise offset for camera distance
     try: 
+        print("[DEBUG] Before get_model_pts!")
         model_pts, norm_factors, corner_pts = get_model_pts(data_root, name_obj, cur_urdf, obj_file_list=urdf_ins['obj_name'])
+        print("[DEBUG] After get_model_pts!")
         center_pts = [(x[0] + x[1])/2 for x in corner_pts]
         tight_bb   = corner_pts[0][1] - corner_pts[0][0] # the size of this objects
         min_dis    = np.linalg.norm(tight_bb) /2 * np.tan(fov/180 /2 * np.pi) # todo
         offset     = min_dis / 2
     except:
         offset     = 0.5
+        min_dis = 1.
 
     if _RENDER_MODE == 'random':
         steeringAngleArray          = np.random.rand(ARTIC_CNT, num_joints) * np.array([max_angles]).reshape(-1, num_joints)

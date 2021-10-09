@@ -94,7 +94,7 @@ def modify_urdf(urdf_dir):
             f.write(xml_pretty_str)
 
 if __name__ == '__main__':
-    base_path = '/work/cascades/lxiaol9/6DPOSE/BMVC15/urdf/Train'
+    base_path = './dataset/BMVC15/urdf/Train'
     urdf_dirs  = glob.glob(base_path + '/*/') #
     for urdf_dir in urdf_dirs:
         print('modifying ', urdf_dir)

@@ -2,7 +2,9 @@ import numpy as np
 import pickle
 import h5py
 import os
+import sys
 # import plotly.express as px
+from tqdm import tqdm
 import argparse
 from scipy.spatial.transform import Rotation as srot
 from scipy.optimize import least_squares
@@ -166,12 +168,13 @@ if __name__ == '__main__':
 
     my_dir          = infos.base_path
     directory       = my_dir + '/results/pickle/{}'.format(main_exp)
+    print("[DEBUG] directory: ", directory + '/{}_{}_{}_rt.pkl'.format(args.domain, args.nocs, args.item))
     rts_all = pickle.load( open( directory + '/{}_{}_{}_rt.pkl'.format(args.domain, args.nocs, args.item), 'rb' ))
-
+    
     all_test_h5     = os.listdir(my_dir + '/results/test_pred/{}/'.format(args.num_exp))
     test_group      = get_test_group(all_test_h5, unseen_instances, domain=args.domain, spec_instances=special_ins)
 
-    file_name       = my_dir + '/results/test_pred/pickle{}/{}_{}_{}_rt_pn.pkl'.format(save_exp, args.domain, args.nocs, args.item)
+    file_name       = my_dir + '/results/pickle/{}/{}_{}_{}_rt_pn.pkl'.format(save_exp, args.domain, args.nocs, args.item)
 
     all_rts   = {}
     mean_err  = {'baseline': [], 'nonlinear': []}
@@ -188,17 +191,22 @@ if __name__ == '__main__':
         t_raw_err   = {'baseline': [[], [], [], []], 'nonlinear': [[], [], [], []]}
         s_raw_err   = {'baseline': [[], [], [], []], 'nonlinear': [[], [], [], []]}
 
-    for i in range(len(test_group)):
+    # print("[DEBUG] rts_all: ", rts_all)
+    for i in tqdm(range(len(test_group))):
         try:
             print('\n Checking {}th data point: {}'.format(i, test_group[i]))
-            if test_group[i][0:4] in problem_ins:
-                print('\n')
-                continue
+            # print("[DEBUG] {} in {}".format(test_group[i][0:4], problem_ins))
+            # if test_group[i][0:4] in problem_ins:
+            #     print('\n')
+            #     continue
             basename = test_group[i].split('.')[0]
-            rts_dict      = rts_all[basename]
+            print("[DEBUG] BASENAME: ", basename)
+            # for key, _ in rts_all.items():
+            #     print("[DEBUG]", key)
+            rts_dict = rts_all[basename]
             scale_gt = rts_dict['scale']['gt'] # list of 2, for part 0 and part 1
             rt_gt    = rts_dict['rt']['gt']    # list of 2, each is 4*4 Hom transformation mat, [:3, :3] is rotation
-            nocs_err_pn   = rts_dict['nocs_err']
+            # nocs_err_pn   = rts_dict['nocs_err']
             f = h5py.File(my_dir + '/results/test_pred/{}/{}.h5'.format(args.num_exp, basename), 'r')
             print('using part nocs prediction')
             nocs_pred = f['nocs_per_point']
@@ -263,8 +271,12 @@ if __name__ == '__main__':
             rts_dict['rpy_err'] = rpy_err
             rts_dict['scale_err'] = scale_err
             all_rts[basename]   = rts_dict
-        except:
+        except Exception as e:
             print(f'wrong entry with {i}th data!!')
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
 
     print('saving to ', file_name)
     with open(file_name, 'wb') as f:

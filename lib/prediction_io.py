@@ -1,4 +1,6 @@
 import os, sys
+
+from numpy.lib.npyio import save
 BASE_DIR = os.path.dirname(__file__)
 sys.path.append(BASE_DIR)
 
@@ -70,7 +72,7 @@ def save_batch_nn(nn_name, pred_result, input_batch,  basename_list, save_dir, s
     if W_reduced:
         instance_per_point = np.argmax(instance_per_point, axis=2) # BxN
     for b in range(batch_size):
-        f = h5py.File(os.path.join(save_dir, basename_list[b] + '.h5'), 'w')
+        f = h5py.File(os.path.join(save_dir, basename_list[b]), 'w')
         f.attrs['method_name'] = nn_name
         f.attrs['basename'] = basename_list[b]
         f.create_dataset('confidence_per_point', data=confidence_per_point[b])

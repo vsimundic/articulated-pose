@@ -3,7 +3,7 @@
 evaluate prediction from A-NCSH and baselines
 """
 import numpy as np
-import os
+import os, sys
 import h5py
 import pickle
 import argparse
@@ -47,13 +47,13 @@ if __name__ == '__main__':
     my_dir          = infos.base_path
     group_dir       = infos.group_path
     base_path       = my_dir + '/results/test_pred'
-    root_dset       = my_dir + '/' + name_dset
+    root_dset       = my_dir + '/dataset/' + name_dset
     if args.item in ['drawer']:
-        root_dset   = group_dir + '/' + name_dset
+        root_dset   = group_dir + '/dataset/' + name_dset
 
-    baseline_file = my_dir + '/results/pickle/{}/{}_{}_{}_rt_pn.pkl'.format(test_exp, args.domain, 'ANCSH', args.item)
-    pn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(test_exp, args.domain, 'ANCSH', args.item)
-    gn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(test_exp, args.domain, 'NAOCS', args.item)
+    baseline_file = my_dir + '/results/pickle/{}/{}_{}_{}_rt_pn.pkl'.format(test_exp, args.domain, args.nocs, args.item)
+    pn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(test_exp, args.domain, args.nocs, args.item)
+    # gn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(test_exp, args.domain, 'NAOCS', args.item)
 
     directory_subs = my_dir + '/results/pickle/{}/subs'.format(main_exp)
     all_files = os.listdir(directory_subs)
@@ -64,7 +64,8 @@ if __name__ == '__main__':
             valid_files.append(directory_subs + '/' + curr_file)
     valid_files.sort()
 
-    result_files = {'pn_gt': pn_gt_file, 'gn_gt': gn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
+    # result_files = {'pn_gt': pn_gt_file, 'gn_gt': gn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
+    result_files = {'pn_gt': pn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
     test_items = list(result_files.keys())[-2:] # ['baseline', 'nonlinear']
     datas       = {}
     basenames   = {}
@@ -163,8 +164,8 @@ if __name__ == '__main__':
                 rt_gt    = datas['pn_gt'][ basename ]['rt']['gt']
                 s_gt     = datas['pn_gt'][ basename ]['scale']['gt']
 
-                rt_g     = datas['gn_gt'][ basename ]['rt']['gt']
-                s_g      = datas['gn_gt'][ basename ]['scale']['gt']
+                # rt_g     = datas['gn_gt'][ basename ]['rt']['gt']
+                # s_g      = datas['gn_gt'][ basename ]['scale']['gt']
 
                 r        = cur_data[ basename ]['rotation'][key]
                 t        = cur_data[ basename ]['translation'][key]
@@ -227,8 +228,12 @@ if __name__ == '__main__':
                 assert len(iou_per_part) == num_parts, print('Only get ', len(iou_per_part))
                 iou_rat[key].append(iou_per_part)
                 boundary_all[key][basename] = boundary
-        except:
-            pass
+        except Exception as e:
+            print(f'wrong entry with {i}th data!!')
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
 
     print('For {} object, {} nocs, 3D IoU per part is: '.format(args.domain, args.nocs))
     for item in test_items:

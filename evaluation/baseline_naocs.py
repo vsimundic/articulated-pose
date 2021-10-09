@@ -7,6 +7,7 @@ import h5py
 import pickle
 import argparse
 import platform
+from tqdm import tqdm
 
 from scipy.spatial.transform import Rotation as srot
 from scipy.optimize import least_squares
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', default='unseen', help='domain to choose')
     parser.add_argument('--nocs', default='global', help='nocs type to choose')
-    parser.add_argument('--item', default='oven', help='object category for benchmarking')
+    parser.add_argument('--item', default='eyeglasses', help='object category for benchmarking')
     args = parser.parse_args()
 
     infos           = global_info()
@@ -206,16 +207,21 @@ if __name__ == '__main__':
         s_raw_err   = {'baseline': [[], [], [], []], 'nonlinear': [[], [], [], []]}
 
     print('using global nocs prediction')
-    for i in range(len(test_group)):
+    for i in tqdm(range(len(test_group))):
         try:
             print('\n Checking {}th data point: {}'.format(i, test_group[i]))
             if test_group[i].split('_')[0] in problem_ins:
                 continue
             basename = test_group[i].split('.')[0]
+            # print("[DEBUG] rts_all: ", rts_all)
+
+            print("[DEBUG] is_key_in: ", True if basename in rts_all else False)
+            print("[DEBUG] basename: ", basename)
+
             rts_dict      = rts_all[basename]
             scale_gt = rts_dict['scale']['gt'] # list of 2, for part 0 and part 1
             rt_gt    = rts_dict['rt']['gt']    # list of 2, each is 4*4 Hom transformation mat, [:3, :3] is rotation
-            nocs_err_pn   = rts_dict['nocs_err']
+            # nocs_err_pn   = rts_dict['nocs_err']
             f = h5py.File(test_h5_path + '/{}.h5'.format(basename), 'r')
             
             nocs_pred = f['gocs_per_point']
@@ -284,8 +290,16 @@ if __name__ == '__main__':
             rts_dict['rpy_err'] = rpy_err
             rts_dict['scale_err'] = scale_err
             all_rts[basename]   = rts_dict
-        except:
+
+            # print("[DEBUG] rts_dict: ", rts_dict)
+            # for key, val in rts_dict.items():
+            #     print("[DEBUG] key: ", key)
+        except Exception as e:
             print(f'wrong entry with {i}th data!!')
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
 
     print('saving to ', file_name)
     with open(file_name, 'wb') as f:

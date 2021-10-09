@@ -54,20 +54,24 @@ if __name__ == '__main__':
     my_dir          = infos.base_path
     group_dir       = infos.group_path
     base_path       = my_dir + '/results/test_pred'
-    root_dset       = my_dir + '/' + name_dset
+    root_dset       = my_dir + '/dataset/' + name_dset
     if args.item in ['drawer']:
         root_dset    = group_dir + '/' + name_dset
 
     directory = my_dir + '/results/pickle/{}'.format(main_exp)
+    # print("[DEBUG] Main exp is: ", main_exp)
     if args.nocs == 'ANCSH':
         baseline_file = directory + '/{}_{}_{}_rt_pn.pkl'.format(args.domain, 'ANCSH', args.item)
+    elif args.nocs == 'NPCS':
+        baseline_file = directory + '/{}_{}_{}_rt_pn.pkl'.format(args.domain, 'NPCS', args.item)
     else:
         baseline_file = directory + '/{}_{}_{}_{}_rt_gn.pkl'.format(main_exp, args.domain, 'NAOCS', args.item)
 
     pn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, 'ANCSH', args.item)
-    gn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, 'NAOCS', args.item)
+    # gn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, 'NAOCS', args.item)
 
     directory_subs= my_dir + '/results/pickle/{}/subs'.format(main_exp)
+    # print("[DEBUG] current file: ", os.getcwd())
     all_files   = os.listdir(directory_subs)
     valid_files = []
     for k in range(30):
@@ -75,7 +79,8 @@ if __name__ == '__main__':
         if curr_file in all_files:
             valid_files.append(directory_subs + '/' + curr_file)
     valid_files.sort() #
-    result_files = {'pn_gt': pn_gt_file, 'gn_gt': gn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
+    # result_files = {'pn_gt': pn_gt_file, 'gn_gt': gn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
+    result_files = {'pn_gt': pn_gt_file, 'baseline': baseline_file, 'nonlinear': valid_files}
 
     test_items = list(result_files.keys())[-2:] # ['baseline', 'nonlinear']
     datas       = {}
@@ -87,6 +92,7 @@ if __name__ == '__main__':
     iou_rat     = {'baseline': [], 'nonlinear': []}
     r_diff_raw_err   = {'baseline': [], 'nonlinear': []}
     t_diff_raw_err   = {'baseline': [], 'nonlinear': []}
+    # print("[DEBUG] TEST ITEMS: ", test_items)
     for key, file_name in result_files.items():
         if key == 'nonlinear':
             datas[key] = {}
@@ -101,16 +107,20 @@ if __name__ == '__main__':
             basenames[key] = list(datas[key].keys())
         else:
             with open(file_name, 'rb') as f:
-                print(file_name)
+                # print("[DEBUG] filename: ", file_name)
                 # breakpoint()
                 datas[key] = pickle.load(f)
                 basenames[key] = list(datas[key].keys())
                 print('number of data for {} : {}'.format(key, len(basenames[key])))
 
+    # for key, cur_data in datas.items():
+    #     print("[DEBUG] keys:", key)
     for key, cur_data in datas.items():
+        # print("[DEBUG] key: ", key)
         if key[-2:] == 'gt':
             continue
         # print('fetch error data for', key)
+
         for i in range(len(basenames[key])):
             basename = basenames[key][i]
             name_info      = basename.split('_')
@@ -119,21 +129,28 @@ if __name__ == '__main__':
             frame_order    = name_info[2]
 
             if instance in ['45841']:
+                print("[DEBUG] Instance is in 45841")
                 continue
             if cur_data[ basename ]['scale'] is None or cur_data[ basename ]['scale'] is [] :
+                print("[DEBUG] Instance is not in scale")
                 continue
+            # print("[DEBUG] Cur_data[basename]: ", cur_data[ basename ])
             r_raw_err[key].append(cur_data[ basename ]['rpy_err'][key])
             t_raw_err[key].append(cur_data[ basename ]['xyz_err'][key])
 
+    # print("[DEBUG] r_raw_err: ", r_raw_err)
     print('For {} object, {} nocs, mean rotation err per part is: '.format(args.domain, args.nocs))
     for item in test_items:
+        # print("[DEBUG] item: ", item)
         r_raw_err[item] = np.array(r_raw_err[item])
         t_raw_err[item] = np.array(t_raw_err[item])
         t_raw_err[item][np.where(np.isnan(t_raw_err[item]))] = 0
         num_valid = r_raw_err[item].shape[0]
         # print(item + ' has numbers: ', r_raw_err[item].shape, t_raw_err[item].shape)
         r_err = []
+        # print("[DEBUG] r_raw_err: ", r_raw_err[item])
         for j in range(num_parts):
+            # print("[DEBUG] j: ", j)
             r_err.append(np.sum( r_raw_err[item][:, j] ) / num_valid)
         print(item[0:8], " ".join(["{:0.4f}".format(x) for x in r_err]))
     print('\n')
@@ -223,8 +240,8 @@ if __name__ == '__main__':
                 rt_gt    = datas['pn_gt'][ basename ]['rt']['gt']
                 s_gt     = datas['pn_gt'][ basename ]['scale']['gt']
 
-                rt_g     = datas['gn_gt'][ basename ]['rt']['gt']
-                s_g      = datas['gn_gt'][ basename ]['scale']['gt']
+                # rt_g     = datas['gn_gt'][ basename ]['rt']['gt']
+                # s_g      = datas['gn_gt'][ basename ]['scale']['gt']
 
                 r        = cur_data[ basename ]['rotation'][key]
                 t        = cur_data[ basename ]['translation'][key]
@@ -270,8 +287,12 @@ if __name__ == '__main__':
                     scale_err_per_part.append( np.linalg.norm(scale_pred * s[j] - scale_gt * s_gt[j]))
                     volume_err_per_part.append( scale_pred[0]*scale_pred[1]*scale_pred[2] * s[j]/(scale_gt[0] * scale_gt[1] * scale_gt[2] * s_gt[j][0]) - 1)
                 boundary_all[key][basename] = boundary
-        except:
-            pass
+        except Exception as e:
+            print(f'wrong entry with {i}th data!!')
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
 
     for key, cur_data in datas.items():
         if key[-2:] == 'gt':
@@ -282,7 +303,7 @@ if __name__ == '__main__':
                 # basename = basenames[key][i]
                 basename = basenames['nonlinear'][i]
                 if cur_data[ basename ]['scale'] is None or cur_data[ basename ]['scale'] is [] or np.any(np.isnan(cur_data[ basename ]['translation'][key])) or basename not in datas['pn_gt']:
-                    # print('wrong data for scale or nan: ', basename)
+                    print('wrong data for scale or nan: ', basename)
                     continue
 
                 name_info      = basename.split('_')
@@ -296,8 +317,8 @@ if __name__ == '__main__':
                 rt_p    = datas['pn_gt'][ basename ]['rt']['gt']
                 s_p     = datas['pn_gt'][ basename ]['scale']['gt']
 
-                rt_g    = datas['gn_gt'][ basename ]['rt']['gt']
-                s_g     = datas['gn_gt'][ basename ]['scale']['gt']
+                # rt_g    = datas['gn_gt'][ basename ]['rt']['gt']
+                # s_g     = datas['gn_gt'][ basename ]['scale']['gt']
                 r        = cur_data[ basename ]['rotation'][key]
                 t        = cur_data[ basename ]['translation'][key]
                 s        = cur_data[ basename ]['scale'][key]
@@ -317,16 +338,17 @@ if __name__ == '__main__':
                     if args.nocs == 'NAOCS' and key == 'nonlinear':
                         t_diff_pred = (t1 - t0).reshape(-1)
                     else: # means it is part NOCS from baseline or joint prediction
+                        debug_sumbitch = True if '0016_26_20' in boundary_all[key] else False
                         t_diff_pred = boundary_all[key][basename]['dynam'][j] - boundary_all[key][basename]['canon'][j]
                         t_diff_pred = np.dot(r0, np.array([t_diff_pred, 0, 0]).reshape(3, 1)).reshape(-1)
                     r0 = rt_p[0][:3,:3]
                     r1 = rt_p[j][:3,:3]
                     r_diff_gt = np.matmul(r0.T, r1)
 
-                    t0 = rt_g[0][:3, 3]
-                    t1 = rt_g[j][:3, 3]
-                    s0 = s_g[0]
-                    s1 = s_g[j]
+                    # t0 = rt_g[0][:3, 3]
+                    # t1 = rt_g[j][:3, 3]
+                    # s0 = s_g[0]
+                    # s1 = s_g[j]
                     t_diff_gt = (t1 - t0).reshape(-1)
                     # print('{}: joint {} has gt translation {} and pred translation {}'.format(key, j, t_diff_gt, t_diff_pred))
                     t_diff_err.append(np.linalg.norm(t_diff_gt - t_diff_pred))
@@ -334,8 +356,12 @@ if __name__ == '__main__':
 
                 r_diff_raw_err[key].append(r_diff_err)
                 t_diff_raw_err[key].append(t_diff_err)
-            except:
-                # print('something is wrong')
+            except Exception as e:
+                print('something is wrong')
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno)
+
                 pass
 
     if args.item == 'drawer':
@@ -347,13 +373,16 @@ if __name__ == '__main__':
             t_diff = []
             for j in range(num_parts - 1):
                 t_diff.append(np.sum( t_diff_arr[:, j] ) / num_valid)
-            print(item[0:8], " ".join(["{:0.4f}".format(x) for x in t_diff]))
+            print(item, " ".join(["{:0.4f}".format(x) for x in t_diff]))
         print('\n')
 
     else:
+        # print("[DEBUG] r_diff_arr_err: ", r_diff_raw_err)
+
         print('For {} object, {} nocs, mean relative rotation err per part is: '.format(args.domain, args.nocs))
         for item in test_items:
             r_diff_arr = np.array(r_diff_raw_err[item])
+            # print("[DEBUG] r_diff_arr: ", r_diff_arr)
             r_diff_arr[np.where(np.isnan(r_diff_arr))] = 0
             num_valid  = r_diff_arr.shape[0]
             r_diff = []

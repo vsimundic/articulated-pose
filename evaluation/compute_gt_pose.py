@@ -2,6 +2,8 @@ import numpy as np
 import os
 import sys
 import time
+
+from numpy.lib.npyio import save
 import h5py
 import pickle
 import argparse
@@ -39,14 +41,16 @@ if __name__ == '__main__':
     special_ins     = dset_info.spec_list
     main_exp        = dset_info.exp
     baseline_exp    = dset_info.baseline
-    test_h5_path    = base_path + '/test_pred/{}'.format(main_exp)
+    test_h5_path    = base_path + '/test_pred/{}'.format(baseline_exp)
     all_test_h5     = os.listdir(test_h5_path)
+    # print("[DEBUG]", all_test_h5)
     test_group      = get_full_test(all_test_h5, unseen_instances, domain=args.domain, spec_instances=special_ins)
     print('we have {} testing data for {} {}'.format(len(test_group), args.domain, args.item))
 
     all_rts = {}
     file_name = base_path + '/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, args.nocs, args.item)
     save_path = base_path + '/pickle/{}/'.format(main_exp)
+
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
@@ -64,7 +68,7 @@ if __name__ == '__main__':
 
             nocs_gt        =  {}
             nocs_gt['pn']  =  hf['nocs_gt'][()]
-            if args.nocs == 'NAOCS':
+            if args.nocs == 'NPCS':
                 nocs_gt['gn']  =  hf['nocs_gt_g'][()]
             input_pts      =  hf['P'][()]
             mask_gt        =  hf['cls_gt'][()]
@@ -94,12 +98,16 @@ if __name__ == '__main__':
             scale_dict['gt'] = scale_gt
             rts_dict['scale']  = scale_dict
             rts_dict['rt']     = rt_dict
-            all_rts[basename]  = rts_dict
-        except:
-            pass
+            all_rts[basename.split('.')[0]]  = rts_dict
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+     
 
     if args.save:
         with open(file_name, 'wb') as f:
             pickle.dump(all_rts, f, protocol=2)
+            # print(all_rts)
             print('saving to ', file_name)
     print('takes {} seconds', time.time() - start_time)

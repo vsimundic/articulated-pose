@@ -444,7 +444,7 @@ def fetch_gt_bmvc(basepath, basename, num_parts=2):
         BB_dict[k]   = tight_bb
     return pose_dict, BB_dict
 
-def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None, is_debug=False, verbose=False):
+def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None, is_debug=True, verbose=False):
     """
     offsets is usually 0, but sometimes could be [x, y, z] in array 1*3, it could be made to a K*3 array if necessary
     """
@@ -452,14 +452,13 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
     pts_list     = []
     name_list    = []
     target_dir   = root_dset + '/objects/' + obj_category + '/' +  item
-
     offset = 0
     if obj_file_list is None:
         for k, obj_file in enumerate(glob.glob( target_dir + '/part_objs/*.obj')):
             if offsets is not None:
                 offset = offsets[k:k+1, :]
             if is_debug:
-                print('obj_file is: ', obj_file)
+                print('\n\nobj_file is: ', obj_file)
             try:
                 tm = trimesh.load(obj_file)
                 vertices_obj = np.array(tm.vertices)
@@ -471,17 +470,25 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
             name_list.append(name_obj)
     else:
         for k, obj_files in enumerate(obj_file_list):
+            print("[DEBUG] obj files: {}".format(obj_files))
             if offsets is not None:
                 offset = offsets[k:k+1, :]
             if obj_files is not None and not isinstance(obj_files, list):
                 try:
                     tm = trimesh.load(obj_files)
+                    # print(type(tm.vertices))
+                    print("[DEBUG] ayy rip")
                     vertices_obj = np.array(tm.vertices)
+                    # print("[DEBUG] vertices: {}".format(vertices_obj))
+
+                    print("[DEBUG] ayy rip2")
+
                 except:
                     dict_mesh, _, _, _ = load_model_split(obj_files)
                     vertices_obj = np.concatenate(dict_mesh['v'], axis=0)
                 pts_list.append(vertices_obj + offset)
-                name_obj  = obj_files.split('.')[0].split('/')[-1]
+                name_obj  = obj_files.split('/')[-1].split('.')[0]
+                print("[DEBUG] name_obj: ", name_obj)
                 name_list.append(name_obj) # which should follow the right order
             elif isinstance(obj_files, list):
                 if verbose:
@@ -502,13 +509,13 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
                 part_pts_whole = np.concatenate(part_pts, axis=0)
                 pts_list.append(part_pts_whole + offset)
                 name_list.append(name_objs) # which should follow the right
-
-    if is_debug:
-        print('name_list is: ', name_list)
+    if is_debug or True:
+        print('\n\n[DEBUG]name_list is: ', name_list)
 
     parts_a    = []
     parts_a    = pts_list
     parts_b    = [None] * len(obj_file_list)
+    print("[DEBUG] Finished parts_a and parts_b")
     # dof_rootd_Aa001_r.obj  dof_rootd_Aa002_r.obj  none_motion.obj
     # bike: part2: 'dof_Aa001_Ca001_r', 'dof_rootd_Aa001_r'
     if obj_category=='bike':
@@ -526,7 +533,9 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         parts      = [part0, part1, part2]
 
     elif obj_category=='eyeglasses':
+        print("[DEBUG] It's in eyeglasses!")
         for i, name_obj in enumerate(name_list):
+            print("[DEBUG] Name_obj: ", name_obj)
             if name_obj in ['none_motion']:
                 parts_b[0] = []
                 parts_b[0].append(pts_list[i])
@@ -536,8 +545,10 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
             elif name_obj in ['dof_rootd_Aa002_r']:
                 parts_b[2] = []
                 parts_b[2].append(pts_list[i])
-
+        
+        print("[DEBUG] Print parts_b: ", parts_b)
         parts      = [parts_a] +  parts_b
+        print("[DEBUG] Finished obj_category")
 
     else:
         parts_a    = []
@@ -550,10 +561,12 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         parts      = [parts_a] +  parts_b
 
     corner_pts = [None] * len(parts)
-
+    print("[DEBUG] Before parts")
+    print("[DEBUG] Parts: ", parts[1])
     for j in range(len(parts)):
-        if is_debug:
+        if is_debug or True:
             print('Now checking ', j)
+        
         part_gts = np.concatenate(parts[j], axis=0)
         print('part_gts: ', part_gts.shape)
         tight_w = max(part_gts[:, 0]) - min(part_gts[:, 0])
@@ -565,13 +578,14 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         corner_pt_left = np.amin(part_gts, axis=0, keepdims=True)
         corner_pt_right= np.amax(part_gts, axis=0, keepdims=True)
         corner_pts[j]  = [corner_pt_left, corner_pt_right] # [index][left/right][x, y, z], numpy array
-        if is_debug:
+        if is_debug or True:
             print('Group {} has {} points with shape {}'.format(j, len(corner_pts[j]), corner_pts[j][0].shape))
         if verbose:
             plot3d_pts([[part_gts[::2]]], ['model pts'], s=15, title_name=['GT model pts {}'.format(j)], sub_name=str(j))
         # for k in range(len(parts[j])):
         #     plot3d_pts([[parts[j][k][::2]]], ['model pts of part {}'.format(k)], s=15, title_name=['GT model pts'], sub_name=str(k))
 
+    print("[DEBUG] Corner pts: ", corner_pts)
     return parts[1:], norm_factors, corner_pts
 
 def calculate_factor_nocs(root_dset, obj_category, item, parts_map, obj_file_list=None, offsets=None, is_debug=False, verbose=True):
@@ -599,6 +613,7 @@ def get_model_pts(root_dset, obj_category, item='0001', obj_file_list=None, offs
     if obj_file_list is not None and obj_file_list[0] == []:
         print('removing the 0th name list')
         obj_file_list = obj_file_list[1:]
+    
     model_pts, norm_factors, corner_pts = get_all_objs(root_dset, obj_category, item, obj_file_list=obj_file_list, offsets=offsets, is_debug=is_debug)
     # read
     return model_pts, norm_factors, corner_pts
@@ -913,10 +928,13 @@ def get_test_group(all_test_h5, unseen_instances, domain='seen', spec_instances=
 
     unseen_frame_select =  list(np.arange(0, 30, 5)) # todo, 6 * 31 * 3
     unseen_frame_select =  [str(x) for x in unseen_frame_select]
+    # print("[DEBUG] all test debug: \n", all_test_h5)
     for test_h5 in all_test_h5:
-        if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5':
+        if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5' or test_h5 == '.h5':
             continue
         name_info      = test_h5.split('.')[0].split('_')
+        # print("[DEBUG] TEST_H5: ", test_h5)
+        # print("[DEBUG] NAME_INFO: ", name_info)
         item           = name_info[0]
         art_index      = name_info[1]
         frame_order    = name_info[2]
@@ -936,10 +954,12 @@ def get_test_group(all_test_h5, unseen_instances, domain='seen', spec_instances=
 def get_full_test(all_test_h5, unseen_instances, domain='seen', spec_instances=[], category=None):
     seen_test_h5    = []
     unseen_test_h5  = []
+    # print("[DEBUG]", all_test_h5)
     for test_h5 in all_test_h5:
-        if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5':
+        if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5' or test_h5 == '.h5':
             continue
         name_info      = test_h5.split('.')[0].split('_')
+        # print("[DEBUG] name_info: ", name_info)
         item           = name_info[0]
         art_index      = name_info[1]
         frame_order    = name_info[2]

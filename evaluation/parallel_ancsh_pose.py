@@ -8,6 +8,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation as srot
 from scipy.optimize import least_squares
+from tqdm import tqdm
 
 import _init_paths
 from global_info import global_info
@@ -18,7 +19,7 @@ infos = global_info()
 my_dir= infos.base_path
 
 def ransac(dataset, model_estimator, model_verifier, inlier_th, niter=10000):
-    print(f'runing {niter} iterations')
+    print(f'running {niter} iterations')
     best_model = None
     best_score = -np.inf
     best_inliers = None
@@ -211,17 +212,19 @@ def solver_ransac_nonlinear(s_ind, e_ind, test_exp, baseline_exp, choose_thresho
         s_raw_err   = {'baseline': [[], [], [], []], 'nonlinear': [[], [], [], []]}
     print('working on ', my_dir + '/results/test_pred/{}/ with {} data'.format(test_exp, len(test_group)))
     start_time = time.time()
-    for i in range(s_ind, e_ind):
+    for i in tqdm(range(s_ind, e_ind)):
         # try:
         print('\n Checking {}th data point: {}'.format(i, test_group[i]))
         if test_group[i].split('_')[0] in problem_ins:
             print('\n')
             continue
         basename = test_group[i].split('.')[0]
+        print("[DEBUG] basename: ", basename)
+        # print("[DEBUG] rts_all: ", rts_all)
         rts_dict = rts_all[basename]
         scale_gt = rts_dict['scale']['gt'] # list of 2, for part 0 and part 1
         rt_gt    = rts_dict['rt']['gt']    # list of 2, each is 4*4 Hom transformation mat, [:3, :3] is rotation
-        nocs_err_pn   = rts_dict['nocs_err']
+        # nocs_err_pn   = rts_dict['nocs_err']
         f = h5py.File(my_dir + '/results/test_pred/{}/{}.h5'.format(test_exp, basename), 'r')
         fb = h5py.File(my_dir + '/results/test_pred/{}/{}.h5'.format(baseline_exp, basename), 'r')
         print('using part nocs prediction')
