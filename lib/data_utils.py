@@ -99,7 +99,9 @@ def split_dataset(root_dset, ctgy_objs, args, test_ins, spec_ins=[], train_ins=N
             for instance in train_ins:
                 if len(spec_ins)>0 and instance in spec_ins:
                     continue
-                for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/train/' + instance + '/*'):
+                # for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/train/' + instance + '/*'):
+                path_to_instance = root_dset + '/hdf5/' + name_obj + '/' + instance + '/*'
+                for dir_arti in glob.glob(path_to_instance):
                     h5_frames = glob.glob(dir_arti + '/*')
                     h5_list   = []
                     for file in h5_frames:
@@ -114,7 +116,8 @@ def split_dataset(root_dset, ctgy_objs, args, test_ins, spec_ins=[], train_ins=N
                         continue
 
             for instance in test_ins:
-                for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/test/' + instance + '/*'):
+                # for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/test/' + instance + '/*'):
+                for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + instance + '/*'):
                     h5_frames = glob.glob(dir_arti + '/*')
                     h5_list   = []
                     for file in h5_frames:
@@ -367,14 +370,20 @@ def get_urdf(inpath, num_real_links=None):
     for link in root_urdf.iter('link'):
         num_links += 1
         index_link = None
-        if link.attrib['name']=='base_link':
+        if link.attrib['name']=='base_link' or link.attrib['name']=='base':
             index_link = 0
         else:
-            index_link = int(link.attrib['name'])
+            try:
+                index_link = int(link.attrib['name'])
+            except ValueError as e:
+                index_link = int(link.attrib['name'].split('_')[1])
         for visual in link.iter('visual'):
             for origin in visual.iter('origin'):
                 list_xyz[index_link] = [float(x) for x in origin.attrib['xyz'].split()]
-                list_rpy[index_link] = [float(x) for x in origin.attrib['rpy'].split()]
+                try:
+                    list_rpy[index_link] = [float(x) for x in origin.attrib['rpy'].split()]
+                except KeyError as e:
+                    list_rpy[index_link] = [0, 0, 0]
             for geometry in visual.iter('geometry'):
                 for mesh in geometry.iter('mesh'):
                     list_obj[index_link] = mesh.attrib['filename']
@@ -393,7 +402,11 @@ def get_urdf(inpath, num_real_links=None):
     # here we still have to read the URDF file
     for joint in root_urdf.iter('joint'):
         index_child = int(joint.attrib['name'].split('_')[-1])
-        index_parent= int(joint.attrib['name'].split('_')[0])
+        try:
+            index_parent= int(joint.attrib['name'].split('_')[0])
+        except ValueError as e:
+            pass
+        
         list_type[index_child] = joint.attrib['type']
         list_part[index_child] = index_parent
         for origin in joint.iter('origin'):
@@ -470,25 +483,19 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
             name_list.append(name_obj)
     else:
         for k, obj_files in enumerate(obj_file_list):
-            print("[DEBUG] obj files: {}".format(obj_files))
             if offsets is not None:
                 offset = offsets[k:k+1, :]
             if obj_files is not None and not isinstance(obj_files, list):
                 try:
                     tm = trimesh.load(obj_files)
                     # print(type(tm.vertices))
-                    print("[DEBUG] ayy rip")
                     vertices_obj = np.array(tm.vertices)
-                    # print("[DEBUG] vertices: {}".format(vertices_obj))
-
-                    print("[DEBUG] ayy rip2")
 
                 except:
                     dict_mesh, _, _, _ = load_model_split(obj_files)
                     vertices_obj = np.concatenate(dict_mesh['v'], axis=0)
                 pts_list.append(vertices_obj + offset)
                 name_obj  = obj_files.split('/')[-1].split('.')[0]
-                print("[DEBUG] name_obj: ", name_obj)
                 name_list.append(name_obj) # which should follow the right order
             elif isinstance(obj_files, list):
                 if verbose:
@@ -510,12 +517,10 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
                 pts_list.append(part_pts_whole + offset)
                 name_list.append(name_objs) # which should follow the right
     if is_debug or True:
-        print('\n\n[DEBUG]name_list is: ', name_list)
-
+        pass
     parts_a    = []
     parts_a    = pts_list
     parts_b    = [None] * len(obj_file_list)
-    print("[DEBUG] Finished parts_a and parts_b")
     # dof_rootd_Aa001_r.obj  dof_rootd_Aa002_r.obj  none_motion.obj
     # bike: part2: 'dof_Aa001_Ca001_r', 'dof_rootd_Aa001_r'
     if obj_category=='bike':
@@ -533,9 +538,7 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         parts      = [part0, part1, part2]
 
     elif obj_category=='eyeglasses':
-        print("[DEBUG] It's in eyeglasses!")
         for i, name_obj in enumerate(name_list):
-            print("[DEBUG] Name_obj: ", name_obj)
             if name_obj in ['none_motion']:
                 parts_b[0] = []
                 parts_b[0].append(pts_list[i])
@@ -546,9 +549,7 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
                 parts_b[2] = []
                 parts_b[2].append(pts_list[i])
         
-        print("[DEBUG] Print parts_b: ", parts_b)
         parts      = [parts_a] +  parts_b
-        print("[DEBUG] Finished obj_category")
 
     else:
         parts_a    = []
@@ -561,8 +562,6 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         parts      = [parts_a] +  parts_b
 
     corner_pts = [None] * len(parts)
-    print("[DEBUG] Before parts")
-    print("[DEBUG] Parts: ", parts[1])
     for j in range(len(parts)):
         if is_debug or True:
             print('Now checking ', j)
@@ -585,7 +584,6 @@ def get_all_objs(root_dset, obj_category, item, obj_file_list=None, offsets=None
         # for k in range(len(parts[j])):
         #     plot3d_pts([[parts[j][k][::2]]], ['model pts of part {}'.format(k)], s=15, title_name=['GT model pts'], sub_name=str(k))
 
-    print("[DEBUG] Corner pts: ", corner_pts)
     return parts[1:], norm_factors, corner_pts
 
 def calculate_factor_nocs(root_dset, obj_category, item, parts_map, obj_file_list=None, offsets=None, is_debug=False, verbose=True):
@@ -840,6 +838,8 @@ def get_part_bounding_box(my_dir, test_ins, args, viz=False):
     n_file        = my_dir + '/shape2motion/pickle/{}.pkl'.format(args.item)
 
     if args.process:
+        root_dset = basepath + '/shape2motion'
+
         for item in os.listdir(test_ins):
             print('now fetching for item {}'.format(item))
             pts, nf, cpts = get_model_pts(root_dset, args.item, item)
@@ -928,13 +928,10 @@ def get_test_group(all_test_h5, unseen_instances, domain='seen', spec_instances=
 
     unseen_frame_select =  list(np.arange(0, 30, 5)) # todo, 6 * 31 * 3
     unseen_frame_select =  [str(x) for x in unseen_frame_select]
-    # print("[DEBUG] all test debug: \n", all_test_h5)
     for test_h5 in all_test_h5:
         if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5' or test_h5 == '.h5':
             continue
         name_info      = test_h5.split('.')[0].split('_')
-        # print("[DEBUG] TEST_H5: ", test_h5)
-        # print("[DEBUG] NAME_INFO: ", name_info)
         item           = name_info[0]
         art_index      = name_info[1]
         frame_order    = name_info[2]
@@ -954,12 +951,10 @@ def get_test_group(all_test_h5, unseen_instances, domain='seen', spec_instances=
 def get_full_test(all_test_h5, unseen_instances, domain='seen', spec_instances=[], category=None):
     seen_test_h5    = []
     unseen_test_h5  = []
-    # print("[DEBUG]", all_test_h5)
     for test_h5 in all_test_h5:
         if test_h5[0:4] in spec_instances or test_h5[-2:] !='h5' or test_h5 == '.h5':
             continue
         name_info      = test_h5.split('.')[0].split('_')
-        # print("[DEBUG] name_info: ", name_info)
         item           = name_info[0]
         art_index      = name_info[1]
         frame_order    = name_info[2]

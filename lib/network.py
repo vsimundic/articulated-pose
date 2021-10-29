@@ -23,7 +23,7 @@ import subprocess
 - back-propagation and model saving, do we need to save all the weights?
 """
 class Network(object):
-    def __init__(self, n_max_parts, config, is_new_training):
+    def __init__(self, n_max_parts, config, is_new_training, dataset_name='shape2motion'):
         self.n_max_parts= n_max_parts
         self.config     = config
         self.graph      = tf.Graph()
@@ -53,19 +53,34 @@ class Network(object):
 
             self.gt_dict = self.create_gt_dict(n_max_parts)
 
-            # todo
-            self.pred_dict = architecture.get_per_point_model_new(
-                scope='SPFN',
-                P=self.P,
-                n_max_parts=n_max_parts,
-                is_training=self.is_training,
-                bn_decay=self.bn_decay,
-                mixed_pred=self.is_mixed,
-                pred_joint=self.pred_joint,
-                pred_joint_ind=self.pred_joint_ind,
-                early_split=self.early_split,
-                early_split_nocs=self.early_split_nocs
-            )
+            if dataset_name is 'shape2motion':
+                # todo
+                self.pred_dict = architecture.get_per_point_model_new(
+                    scope='SPFN',
+                    P=self.P,
+                    n_max_parts=n_max_parts,
+                    is_training=self.is_training,
+                    bn_decay=self.bn_decay,
+                    mixed_pred=self.is_mixed,
+                    pred_joint=self.pred_joint,
+                    pred_joint_ind=self.pred_joint_ind,
+                    early_split=self.early_split,
+                    early_split_nocs=self.early_split_nocs
+                )
+            else:
+                self.pred_dict = architecture.get_per_point_model(
+                    scope='SPFN',
+                    P=self.P,
+                    n_max_parts=n_max_parts,
+                    is_training=self.is_training,
+                    bn_decay=self.bn_decay,
+                    mixed_pred=self.is_mixed,
+                    pred_joint=self.pred_joint,
+                    pred_joint_ind=self.pred_joint_ind,
+                    early_split=self.early_split,
+                    early_split_nocs=self.early_split_nocs
+                )
+
             # here we'll bring all the preditions into loss module
             eval_dict = self.compute_loss(
                 self.pred_dict,

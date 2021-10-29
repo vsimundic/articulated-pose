@@ -38,7 +38,7 @@ Dumper.add_representer(str, SafeRepresenter.represent_str)
 # custom libs
 import _init_paths
 from global_info import global_info
-from lib.data_utils import get_model_pts, get_urdf
+from lib.data_utils import get_model_pts, get_urdf, get_urdf_mobility
 
 # Step through simulation time
 def step_simulation():
@@ -49,7 +49,7 @@ def step_simulation():
         time.sleep(0.01)
         
 #>>>>>>>>>>>>>>>>>>>>>>---------Rendering setup----------<<<<<<<<<<<<<<<<<<<<<<<<<#
-def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='NA', _WRITE_FLAG=True, _RENDER_FLAG=True, _CREATE_FOLDER=True, RENDER_NUM=100, ARTIC_CNT=20, _RENDER_MODE='random', _USE_GUI=True, _IS_DUBUG=True):
+def render_data(data_root, name_dataset, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='NA', _WRITE_FLAG=True, _RENDER_FLAG=True, _CREATE_FOLDER=True, RENDER_NUM=100, ARTIC_CNT=20, _RENDER_MODE='random', _USE_GUI=True, _IS_DUBUG=True):
     #>>>>>>>>>>>>>>>>>>>>>>>>>> internal config >>>>>>>>>>>>>>>>>>>>>>#
     save_path     = data_root + '/render/' + name_obj
     path_urdf = data_root + '/urdf/' + name_obj 
@@ -77,16 +77,26 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
     if not _WRITE_FLAG:
         camInfo  = pybullet.getDebugVisualizerCamera()
 
-    tree_urdf = ET.parse("{}/{}/syn.urdf".format(path_urdf, cur_urdf))
-    root      = tree_urdf.getroot()
+    # tree_urdf = ET.parse("{}/{}/syn.urdf".format(path_urdf, cur_urdf))
+    # root      = tree_urdf.getroot()
 
     num_joints = 0
-    num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) -2
+    if name_dataset == 'shape2motion':
+        num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) - 2
+    else: 
+        num_joints = len(os.listdir("{}/{}/".format(path_urdf, cur_urdf))) - 3
+
 
     obj_parts = []
     pybullet.setGravity(0, 0, -10)
 
-    for i in range(num_joints+1): #
+    if name_dataset == 'shape2motion':
+        num_joints_for_loop = num_joints + 1
+    else:
+        print("Using sapien.")
+        num_joints_for_loop = num_joints
+
+    for i in range(num_joints_for_loop): #
         urdf_file = "{}/{}/syn_p{}.urdf".format(path_urdf, cur_urdf, i)
         print('loading ', urdf_file)
         obj_p = pybullet.loadURDF(urdf_file)
@@ -99,22 +109,29 @@ def render_data(data_root, name_obj, cur_urdf, args=None, cam_dis=1, urdf_file='
 
     simu_cnt   = 0
     main_start = time.time()
+    if name_dataset == 'shape2motion':
+        urdf_ins   = get_urdf("{}/{}".format(path_urdf, cur_urdf))
+    else:
+        urdf_ins   = get_urdf_mobility("{}/{}".format(path_urdf, cur_urdf))
 
-    urdf_ins   = get_urdf("{}/{}".format(path_urdf, cur_urdf))
     num_joints = len(urdf_ins['obj_name']) -1
 
     # instance-wise offset for camera distance
     try: 
-        print("[DEBUG] Before get_model_pts!")
         model_pts, norm_factors, corner_pts = get_model_pts(data_root, name_obj, cur_urdf, obj_file_list=urdf_ins['obj_name'])
-        print("[DEBUG] After get_model_pts!")
         center_pts = [(x[0] + x[1])/2 for x in corner_pts]
         tight_bb   = corner_pts[0][1] - corner_pts[0][0] # the size of this objects
         min_dis    = np.linalg.norm(tight_bb) /2 * np.tan(fov/180 /2 * np.pi) # todo
         offset     = min_dis / 2
-    except:
+    except Exception as e:
+
         offset     = 0.5
         min_dis = 1.
+
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
+
 
     if _RENDER_MODE == 'random':
         steeringAngleArray          = np.random.rand(ARTIC_CNT, num_joints) * np.array([max_angles]).reshape(-1, num_joints)
@@ -254,15 +271,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help='indicating whether in debug mode')
-    parser.add_argument('--dataset', default='shape2motion', help='name of the dataset we use')
-    parser.add_argument('--item', default='eyeglasses', help='name of category we use')
+    parser.add_argument('--dataset', default='sapien', help='name of the dataset we use')
+    parser.add_argument('--item', default='drawer', help='name of category we use')
     parser.add_argument('--dis',   default=3, help='default camera2object distance')
     parser.add_argument('--mode',  default='train', help='mode decides saving folder:train/demo')
-    parser.add_argument('--roll', default='30,40', help='camera view angle', required=True)
-    parser.add_argument('--pitch', default='30,40', help='camera view angle', required=True)
-    parser.add_argument('--yaw',  default='30,40', help='camera view angle', required=True)
-    parser.add_argument('--min_angles',  default='30,40,50', help='minimum joint angles', required=True)
-    parser.add_argument('--max_angles',  default='30,40,50', help='maximum joint angles', required=True)
+    parser.add_argument('--roll', default='30,40', help='camera view angle')
+    parser.add_argument('--pitch', default='30,40', help='camera view angle')
+    parser.add_argument('--yaw',  default='30,40', help='camera view angle')
+    parser.add_argument('--min_angles',  default='30,40,50,60', help='minimum joint angles')
+    parser.add_argument('--max_angles',  default='30,40,50,60', help='maximum joint angles')
     parser.add_argument('--cnt', default=30, help='count of articulation change')
     parser.add_argument('--num', default=10, help='number of rendering per articulation')
     args = parser.parse_args()
@@ -301,7 +318,7 @@ if __name__ == "__main__":
     np.random.seed(5) # better to have this random seed here
     if is_debug:
         for instance in all_ins:
-            render_data(data_root, args.item, instance, cam_dis=cam_dis, args=args,  _WRITE_FLAG=_WRITE, _RENDER_FLAG=_RENDER, _CREATE_FOLDER=_CREATE, RENDER_NUM=num_render, ARTIC_CNT=cnt_artic, _USE_GUI=_USE_GUI, _IS_DUBUG=is_debug)
+            render_data(data_root, args.dataset, args.item, instance, cam_dis=cam_dis, args=args,  _WRITE_FLAG=_WRITE, _RENDER_FLAG=_RENDER, _CREATE_FOLDER=_CREATE, RENDER_NUM=num_render, ARTIC_CNT=cnt_artic, _USE_GUI=_USE_GUI, _IS_DUBUG=is_debug)
     else:
         for instance in all_ins: #todo
-            render_data(data_root, args.item, instance, cam_dis=cam_dis, args=args,  _WRITE_FLAG=_WRITE, _RENDER_FLAG=_RENDER, _CREATE_FOLDER=_CREATE, RENDER_NUM=num_render, ARTIC_CNT=cnt_artic, _USE_GUI=_USE_GUI, _IS_DUBUG=is_debug)
+            render_data(data_root, args.dataset, args.item, instance, cam_dis=cam_dis, args=args,  _WRITE_FLAG=_WRITE, _RENDER_FLAG=_RENDER, _CREATE_FOLDER=_CREATE, RENDER_NUM=num_render, ARTIC_CNT=cnt_artic, _USE_GUI=_USE_GUI, _IS_DUBUG=is_debug)

@@ -4,3 +4,4 @@ articulated-pose.code-workspace
 .vscode/
 __pycache__/
 download_sapien.py
+lib/__pycache__/

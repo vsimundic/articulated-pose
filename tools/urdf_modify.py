@@ -27,11 +27,17 @@ import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element, tostring, SubElement, Comment, ElementTree, XML
 import xml.dom.minidom
 
+sys.path.append("..")
+
+from lib import data_utils as du
+
+
+
 def modify_urdf(urdf_dir):
     """
     urdf cleaning
     """
-    urdf_file  =  urdf_dir + '/mobility.urdf'
+    urdf_file  =  os.path.join(urdf_dir, 'mobility.urdf')
     save_dir   =  urdf_dir
     xml_string = xml.dom.minidom.parse(urdf_file)
     xml_pretty_str = xml_string.toprettyxml()
@@ -94,8 +100,11 @@ def modify_urdf(urdf_dir):
             f.write(xml_pretty_str)
 
 if __name__ == '__main__':
-    base_path = './dataset/BMVC15/urdf/Train'
+    # base_path = '../dataset/shape2motion/objects/eyeglasses'
+    base_path = '../dataset/sapien/objects/drawer'
     urdf_dirs  = glob.glob(base_path + '/*/') #
     for urdf_dir in urdf_dirs:
         print('modifying ', urdf_dir)
         modify_urdf(urdf_dir)
+        du.get_urdf_mobility(urdf_dir)
+    print("Done.")

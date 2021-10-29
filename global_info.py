@@ -190,7 +190,7 @@ class global_info(object):
         # results/: put network raw predictions + pose estimation results + error evaluation results;
         # dataset/: all data we use
         self.base_path = '.'
-        self.group_path= './' # useful when we have additional dataset;
+        self.group_path= '.' # useful when we have additional dataset;
 
 if __name__ == '__main__':
     infos = global_info()

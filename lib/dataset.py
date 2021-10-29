@@ -53,13 +53,11 @@ class Dataset:
         
         with open(idx_txt, "r") as fp:
             line = fp.readline()
-            # print("[DEBUG] line: {}".format(line))
             cnt  = 1
             while line:
                 # todos: test mode
                 hdf5_file = line.strip()
                 item = hdf5_file.split('/')[-3]
-                # print("[DEBUG] aaaaaaa {}".format(item))
                 if mode=='test':
                     if domain=='seen' and (item not in infos.datasets[ctgy_obj].test_list):
                         self.hdf5_file_list.append(hdf5_file)
@@ -71,14 +69,13 @@ class Dataset:
                     self.hdf5_file_list.append(hdf5_file)
 
                 line = fp.readline()
-        if is_debug:
-            print('hdf5_file_list: ', len(self.hdf5_file_list), self.hdf5_file_list[0])
+        # if is_debug:
+        #     print('hdf5_file_list: ', len(self.hdf5_file_list), self.hdf5_file_list[0])
         if not fixed_order:
             random.shuffle(self.hdf5_file_list)
         if first_n != -1:
             self.hdf5_file_list = self.hdf5_file_list[:first_n]
 
-        # print("[DEBUG] {}".format(self.hdf5_file_list))
         self.basename_list = []
         
         for p in self.hdf5_file_list:
@@ -90,8 +87,8 @@ class Dataset:
             self.basename_list.append("{}_{}_{}".format(q[0], q[1], q[2]))
             #     # "_".join(["{}".format(q) for q in p.split('/')[-3:]])
             # pass
-        if is_debug:
-            print('basename_list: ', self.basename_list[0])
+        # if is_debug:
+        #     print('basename_list: ', self.basename_list[0])
         
         self.n_data = len(self.hdf5_file_list)
         self.first_iteration_finished = False
@@ -154,13 +151,11 @@ class Dataset:
                     if type(dp) is dict:
                         dp = [dp]
                     data.append(dp)
-            # print("[DEBUG] data: ", data)
             # if len(data) < step:
             #     for i in range(len(data), step):
             #         data.append(data[0])
             if not hasattr(self, 'data_matrix'):
                 self.data_matrix = {}
-                # print("[DEBUG] data: {}".format(data))
                 
                 for key in data[0][0].keys():
                     trailing_ones = np.full([len(data[0][0][key].shape)], 1, dtype=int)
@@ -187,7 +182,6 @@ class Dataset:
 
     def create_iterator(self):
 
-        # print("[DEBUG] AYYYYYYY RIP: ", self)
         return self
 
     def fetch_factors_nocs(self, obj_category, is_debug=False, is_gen=False):
@@ -254,10 +248,10 @@ class Dataset:
         root_dset   = self.root_dir
         for item in all_items:
             if self.name_dset == 'shape2motion':
-                path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
+                path_urdf = self.root_dir + '/urdf' + '/' + obj_category
                 urdf_ins   = get_urdf("{}/{}".format(path_urdf, item))
             elif self.name_dset == 'sapien':
-                path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
+                path_urdf = self.root_dir + '/objects' + '/' + obj_category + '/' + item
                 urdf_ins   = get_urdf_mobility(path_urdf)
             else:
                 path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
@@ -267,8 +261,8 @@ class Dataset:
                 urdf_ins['joint']['axis'][1], urdf_ins['joint']['axis'][2] = urdf_ins['joint']['axis'][2], urdf_ins['joint']['axis'][1]
             all_joints[item] = urdf_ins
 
-            if is_debug:
-                print(urdf_ins['link']['xyz'], urdf_ins['joint']['axis'])
+            # if is_debug:
+            #     print(urdf_ins['link']['xyz'], urdf_ins['joint']['axis'])
 
         return all_joints
 
@@ -625,7 +619,11 @@ class Dataset:
             joint_params = np.zeros((n_parts, 6))
 
         for idx, group in enumerate(parts_map):
-            P = f['gt_points'][str(group[0])][()][:, :3]
+            # if idx == 0:
+            #     continue
+            P_ = f['gt_points']
+            print([key for key in P_.keys()])
+            P = P_[str(group[0])][()][:, :3]
             for i in range(1, len(group)):
                 P = np.concatenate((P, f['gt_points'][str(group[i])][()][:, :3]), axis=0)
             parts_pts[idx] = P              # input pt cloud
@@ -730,8 +728,8 @@ if __name__=='__main__':
     random.seed(30)
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_file', default='./cfg/network_config.yml', help='YAML configuration file')
-    parser.add_argument('--dataset', default='shape2motion', help='name of dataset')
-    parser.add_argument('--item', default='oven', help='name of the dataset we use')
+    parser.add_argument('--dataset', default='sapien', help='name of dataset')
+    parser.add_argument('--item', default='drawer', help='name of the dataset we use')
     # parser.add_argument('--dataset', default='sapien', help='name of the dataset we use')
     # parser.add_argument('--item', default='cabinet', help='name of the dataset we use')
     # parser.add_argument('--dataset', default='BMVC15', help='name of the dataset we use')
@@ -742,11 +740,11 @@ if __name__=='__main__':
     parser.add_argument('--pred_joint', action='store_true', help='whether we want to predict joint offsets')
     parser.add_argument('--pred_joint_ind', action='store_true', help='whether we want to predict joint offsets index')
     parser.add_argument('--early_split', action='store_true', help='whether we want to early split')
-    parser.add_argument('--split', action='store_true', help='to split the dataset')
-    parser.add_argument('--gen', action='store_true', help='to split the dataset')
+    parser.add_argument('--split', action='store_true', default='true', help='to split the dataset')
+    parser.add_argument('--gen', action='store_true', default='true', help='to split the dataset')
     parser.add_argument('--test', action='store_true', help='Run network in test time')
     parser.add_argument('--show_fig', action='store_true', help='Run network in test time')
-    parser.add_argument('--save_fig', action='store_true', help='Run network in test time')
+    parser.add_argument('--save_fig', action='store_true', default='true', help='Run network in test time')
     parser.add_argument('--save_h5',  action='store_true', help='save h5 to test or demo folder')
 
     parser.add_argument('--domain', default='unseen', help='choose seen or unseen objects')
@@ -758,7 +756,6 @@ if __name__=='__main__':
     parser.add_argument('--cycle', action='store_true', help='whether we want to enforce cycle consistency on part and global nocs')
     parser.add_argument('--early_split_nocs', action='store_true', help='whether we want to predict parallelly for ')
     args = parser.parse_args()
-    # print("[DEBUG] CONFIG FILE: {}".format(args.config_file))
     
 
     # config file fixed
@@ -807,11 +804,9 @@ if __name__=='__main__':
     selected_index = np.arange(80, 81)
     # selected_index = [train_data.basename_list.index('0016_0_0')] + list(np.arange(0, len(train_data.basename_list)))
     for i in selected_index:
-        # print("[DEBUG] LOOOOOOOOOOOOOOOOOOOOOOOL")
-        # print("[DEBUG] i = {}]".format(i))
         basename =  train_data.basename_list[i]
         if basename.split('_')[0] not in test_ins:
-            print("[DEBUG] basename not in test_ins: {}".format(basename.split('_')[0]))
+            print("basename not in test_ins: {}".format(basename.split('_')[0]))
             continue
 
         instance = basename.split('_')[0]

@@ -18,6 +18,7 @@ import numpy as np
 import cv2
 from PIL import Image
 import xml.etree.ElementTree as ET
+from tqdm import tqdm
 
 from collections import OrderedDict
 from yaml import CLoader as Loader, CDumper as Dumper
@@ -50,6 +51,7 @@ class PoseDataset():
         self.mode     = mode
         self.max_lnk  = 10
         self.root_dir  = root_dir
+        self.dataset_name = self.root_dir.split('/')[-1]
         self.dataset_render = root_dir + '/render'
         self.models_dir  = root_dir + '/objects'
         self.objnamelist = os.listdir(self.dataset_render)
@@ -108,26 +110,43 @@ class PoseDataset():
                     meta[art_index] = meta_instance
                 except:
                     meta[art_index] = None
+            if self.root_dir.split('/')[-1] == 'shape2motion':
+                tree_urdf     = ET.parse(self.root_dir + "/urdf/" + obj_category + '/' + ins + "/syn.urdf") # todo
+            else:
+                tree_urdf     = ET.parse(self.root_dir + "/urdf/" + obj_category + '/' + ins + "/mobility.urdf") # todo
 
-            tree_urdf     = ET.parse(self.root_dir + "/urdf/" + obj_category + '/' + ins + "/syn.urdf") # todo
             root_urdf     = tree_urdf.getroot()
             rpy_xyz       = {}
             list_xyz      = [None] * self.max_lnk
             list_rpy      = [None] * self.max_lnk
             list_box      = [None] * self.max_lnk
+            
             # ['obj'] ['link/joint']['xyz/rpy'] [0, 1, 2, 3, 4]
+            
             num_links     = 0
             for link in root_urdf.iter('link'):
+                if self.root_dir.split('/')[-1] == 'sapien' and link.attrib['name']=='base':
+                    continue # 'base' in sapien dataset doesn't contain any useful info - only a reference link
+                
                 num_links += 1
                 index_link = None
-                if link.attrib['name']=='base_link':
+                if link.attrib['name']=='base_link': # or link.attrib['name']=='base':
                     index_link = 0
+                
                 else:
-                    index_link = int(link.attrib['name'])
-                for visual in link.iter('visual'):
-                    for origin in visual.iter('origin'):
-                        list_xyz[index_link] = [float(x) for x in origin.attrib['xyz'].split()]
-                        list_rpy[index_link] = [float(x) for x in origin.attrib['rpy'].split()]
+                    if self.root_dir.split('/')[-1] == 'shape2motion':
+                        index_link = int(link.attrib['name'])
+                    else:
+                        index_link = int(link.attrib['name'].split('_')[-1])
+                if not link.attrib['name']=='base':
+                    for visual in link.iter('visual'):
+                        for origin in visual.iter('origin'):
+                            list_xyz[index_link] = [float(x) for x in origin.attrib['xyz'].split()]
+                            try:
+                                list_rpy[index_link] = [float(x) for x in origin.attrib['rpy'].split()]
+                            except KeyError as e:
+                                list_rpy[index_link] = [0, 0, 0]
+                                
 
             rpy_xyz['xyz']   = list_xyz
             rpy_xyz['rpy']   = list_rpy
@@ -140,12 +159,21 @@ class PoseDataset():
             list_axis     = [None] * self.max_lnk
             # here we still have to read the URDF file
             for joint in root_urdf.iter('joint'):
-                index_joint = int(joint.attrib['name'][0])
+                try:
+                    index_joint = int(joint.attrib['name'][0])
+                except ValueError as e:
+                    index_joint = int(joint.attrib['name'].split('_')[-1]) # example: from 'joint_0' it splits it and takes only '0' 
+
                 for origin in joint.iter('origin'):
                     list_xyz[index_joint] = [float(x) for x in origin.attrib['xyz'].split()]
-                    list_rpy[index_joint] = [float(x) for x in origin.attrib['rpy'].split()]
+                    try:
+                        list_rpy[index_joint] = [float(x) for x in origin.attrib['rpy'].split()]
+                    except KeyError as e:
+                        list_rpy[index_joint] = [0., 0., 0.]
+
                 for axis in joint.iter('axis'):
                     list_axis[index_joint]= [float(x) for x in axis.attrib['xyz'].split()]
+            
             rpy_xyz['xyz']       = list_xyz
             rpy_xyz['rpy']       = list_rpy
             rpy_xyz['axis']      = list_axis
@@ -222,6 +250,7 @@ class PoseDataset():
         depth = np.array(h5py.File(self.list_depth[index], 'r')['data'])
         label = np.array(Image.open(self.list_label[index]))
 
+        # print("[DEBUG] label: ", label)
         # pose infos
         pose_dict = self.meta_dict[obj_category][ins][art_status]['frame_{}'.format(frame_order)]
         urdf_dict = self.urdf_dict[obj_category][ins]
@@ -230,19 +259,31 @@ class PoseDataset():
 
         parts_world_pos[0] = np.array([0, 0, 0])
         parts_world_orn[0] = np.array([0, 0, 0, 1])
-        for link in range(0, num_parts):
-            if link >0:
-                parts_world_pos[link] = np.array(pose_dict['obj'][link-1][4]).astype(np.float32)
-                parts_world_orn[link] = np.array(pose_dict['obj'][link-1][5]).astype(np.float32)
 
-        for link in range(num_parts):
+        # if self.dataset_name == 'shape2motion':
+        #     temp_num_parts_range = range(num_parts)
+        # else:
+        #     temp_num_parts_range = range(1, num_parts)
+        temp_num_parts_range = range(num_parts)
+
+        for link in temp_num_parts_range:
+            if self.dataset_name == 'shape2motion':
+                if link >0:
+                    parts_world_pos[link] = np.array(pose_dict['obj'][link-1][4]).astype(np.float32)
+                    parts_world_orn[link] = np.array(pose_dict['obj'][link-1][5]).astype(np.float32)
+            else:
+                    parts_world_pos[link] = np.array(pose_dict['obj'][link][4]).astype(np.float32)
+                    parts_world_orn[link] = np.array(pose_dict['obj'][link][5]).astype(np.float32)
+
+
+        for link in temp_num_parts_range:
             if link == 1 and num_parts==2:
                 parts_urdf_pos[link] = np.array(urdf_dict['joint']['xyz'][link-1]) # todo, accumulate joints pffsets != link offsets
             else:
                 parts_urdf_pos[link] = -np.array(urdf_dict['link']['xyz'][link])
             parts_urdf_orn[link] = np.array(urdf_dict['link']['rpy'][link])
 
-        for k in range(num_parts):
+        for k in temp_num_parts_range:
             center_world_orn   = parts_world_orn[k]
             center_world_orn   = np.array([center_world_orn[3], center_world_orn[0], center_world_orn[1], center_world_orn[2]])
             my_model2world_r   = quaternion_matrix(center_world_orn)[:4, :4] # [w, x, y, z]
@@ -257,8 +298,8 @@ class PoseDataset():
 
         # depth to cloud data
         mask = np.array((label[:, :] < num_parts) & (label[:, :] > -1)).astype(np.uint8)
-        mask_whole = np.copy(mask)
-        for n in range(num_parts):
+        # mask_whole = np.copy(mask)
+        for n in temp_num_parts_range:
             parts_mask[n] = np.array((label[:, :]==(n))).astype(np.uint8)
             choose_to_whole[n] = np.where(parts_mask[n]>0)
 
@@ -274,11 +315,12 @@ class PoseDataset():
         w_channel = -depth
         projected_map = np.stack([u_map * w_channel, v_map * w_channel, depth, w_channel]).transpose([1, 2, 0])
         projected_map1 = np.stack([u_map * w_channel, v1_map * w_channel, depth, w_channel]).transpose([1, 2, 0])
-        for s in range(num_parts):
+        for s in temp_num_parts_range:
             x_set, y_set   = choose_to_whole[s]
             if len(x_set)<10:
                 print('data is empty, skipping!!!')
                 return None
+                # continue
             else:
                 choose_x[s] = x_set
                 choose_y[s] = y_set
@@ -308,8 +350,8 @@ class PoseDataset():
             parts_cloud_cam[s]    = cloud_cam_real[:, :3]
             parts_cloud_world[s]  = cloud_world[:, :3]
             parts_cloud_canon[s]  = cloud_canon[:, :3]
-
-        for k in range(num_parts):
+            
+        for k in temp_num_parts_range:
             center_joint_orn   = parts_urdf_orn[k]
             my_canon2urdf_r    = euler_matrix(center_joint_orn[0], center_joint_orn[1], center_joint_orn[2])[:4, :4] # [w, x, y, z]
             my_canon2urdf_t    = parts_urdf_pos[k]
@@ -318,9 +360,8 @@ class PoseDataset():
                 my_canon2urdf_mat[m, 3] = my_canon2urdf_t[m]
             part_points_space  = np.concatenate((parts_cloud_canon[k], np.ones((parts_cloud_canon[k].shape[0], 1))), axis=1)
             parts_cloud_urdf[k] = np.dot(part_points_space, my_canon2urdf_mat.T)
-
         #>>>>>>>>>>>>>>> go to PNCS space
-        for link in range(num_parts):
+        for link in temp_num_parts_range:
             tight_w = max(parts_cloud_urdf[link][:, 0]) - min(parts_cloud_urdf[link][:, 0])
             tight_l = max(parts_cloud_urdf[link][:, 1]) - min(parts_cloud_urdf[link][:, 1])
             tight_h = max(parts_cloud_urdf[link][:, 2]) - min(parts_cloud_urdf[link][:, 2])
@@ -331,8 +372,8 @@ class PoseDataset():
 
             parts_cloud_norm[link] = (parts_cloud_urdf[link][:, :3] - base_p) * norm_factor + np.array([0.5, 0.5, 0.5]).reshape(1, 3) - center_p.reshape(1, 3)
 
-        x_set_pcloud = np.concatenate(choose_x, axis=0)
-        y_set_pcloud = np.concatenate(choose_y, axis=0)
+        # x_set_pcloud = np.concatenate(choose_x, axis=0)
+        # y_set_pcloud = np.concatenate(choose_y, axis=0)
 
         # save into h5 for rgb_img, input_pts, mask, correpsonding urdf_points
         print('Writing to ', h5_save_name)
@@ -341,14 +382,19 @@ class PoseDataset():
         hf.create_dataset('mask', data=mask)
         cloud_cam=hf.create_group('gt_points')
         for part_i, points in enumerate(parts_cloud_cam):
+            if name_dataset == 'sapien' and part_i == 0:
+                continue
             cloud_cam.create_dataset(str(part_i), data=points)
         coord_gt=hf.create_group('gt_coords')
         for part_i, points in enumerate(parts_cloud_urdf):
+            if name_dataset == 'sapien' and part_i == 0:
+                continue
+
             coord_gt.create_dataset(str(part_i), data=points)
         hf.close()
 
         ################# for debug only, let me know if you have questions #################
-        if self.is_debug:
+        if self.is_debug: #or True:
             figure = plt.figure(dpi=200)
             ax = plt.subplot(121)
             plt.imshow(img)
@@ -367,8 +413,8 @@ class PoseDataset():
 if __name__ == '__main__':
     #>>>>>>>>>>>>>>>>>>>>>>>>> config here >>>>>>>>>>>>>>>>>>>>>>>#
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='shape2motion', help='name of the dataset we use') # todo
-    parser.add_argument('--item', default='eyeglasses', help='name of the dataset we use')
+    parser.add_argument('--dataset', default='sapien', help='name of the dataset we use') # todo
+    parser.add_argument('--item', default='drawer', help='name of the dataset we use')
     parser.add_argument('--num_expr', default='0.01', help='get configuration file per expriment')
     parser.add_argument('--mode', default='train', help='indicating whether in demo mode')
     parser.add_argument('--debug', action='store_true', help='indicating whether in debug mode')
@@ -382,13 +428,13 @@ if __name__ == '__main__':
     selected_list = infos.datasets[item].train_list # default None, if specifies, will only choose specified instances
     #>>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>#
 
-    # 1. collect filenames into all.txt, then create dataset object
-    collect_file(root_dset, [item], mode=args.mode)
+    # # 1. collect filenames into all.txt, then create dataset object
+    # collect_file(root_dset, [item], mode=args.mode)
     PoseData     = PoseDataset(root_dset, item, is_debug=args.debug, mode=args.mode, selected_list=selected_list)
     print('number of images: ', len(PoseData.list_rgb))
 
-    # 2. preprocess and save
-    for i in range(0, len(PoseData.list_rgb)):
+    # # 2. preprocess and save
+    for i in tqdm(range(0, len(PoseData.list_rgb))):
         data = PoseData.__preprocess_and_save__(i)
 
     # 3. split .h5 data into train & test

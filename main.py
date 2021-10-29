@@ -21,8 +21,9 @@ if __name__ == '__main__':
     # parser
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_file', default='./cfg/network_config.yml', help='YAML configuration file')
-    parser.add_argument('--name_data', default='shape2motion', help='name of the dataset we use')
-    parser.add_argument('--item', default='eyeglasses', help='name of the dataset we use')
+    parser.add_argument('--name_data', default='sapien', help='name of the dataset we use')
+    parser.add_argument('--item', default='drawer', help='name of the object we use')
+    parser.add_argument('--dataset', default='sapien', help='name of the dataset we use')
     parser.add_argument('--num_expr', default=0.01, help='small set data used for testing')
     parser.add_argument('--nocs_type', default='ancsh', help='whether use global or part level NOCS') # default A/B/C
     parser.add_argument('--data_mode', default='test', help='how to split and choose data')
@@ -80,8 +81,8 @@ if __name__ == '__main__':
     in_model_dir = conf.get_in_model_dir()
 
     ckpt = tf.train.get_checkpoint_state(in_model_dir)
-    should_restore = (ckpt is not None) and (ckpt.model_checkpoint_path is not None)
-    net = Network(n_max_parts=n_max_parts, config=conf, is_new_training=not should_restore)
+    should_restore = (ckpt is not None) and (ckpt.model_checkpoint_path is not None) and False
+    net = Network(n_max_parts=n_max_parts, config=conf, is_new_training=not should_restore, dataset_name=args.dataset)
 
     with tf.Session(config=tf_conf, graph=net.graph) as sess:
         if conf.is_debug_mode():

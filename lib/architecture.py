@@ -28,7 +28,7 @@ def get_per_point_model(scope, P, n_max_parts, is_training, bn_decay, early_spli
     with tf.variable_scope(scope):
         out_dims=[n_max_parts, 3*n_max_parts]
         if mixed_pred:
-            out_dims.append(3)
+            out_dims.append(4)
         out_dims.append(1)
         net = build_pointnet2_shared('est_net', X=P, out_dims=out_dims, is_training=is_training, bn_decay=bn_decay)
         # early_split by default

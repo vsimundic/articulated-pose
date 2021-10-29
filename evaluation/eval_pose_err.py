@@ -59,7 +59,6 @@ if __name__ == '__main__':
         root_dset    = group_dir + '/' + name_dset
 
     directory = my_dir + '/results/pickle/{}'.format(main_exp)
-    # print("[DEBUG] Main exp is: ", main_exp)
     if args.nocs == 'ANCSH':
         baseline_file = directory + '/{}_{}_{}_rt_pn.pkl'.format(args.domain, 'ANCSH', args.item)
     elif args.nocs == 'NPCS':
@@ -71,7 +70,6 @@ if __name__ == '__main__':
     # gn_gt_file    = my_dir + '/results/pickle/{}/{}_{}_{}_rt.pkl'.format(main_exp, args.domain, 'NAOCS', args.item)
 
     directory_subs= my_dir + '/results/pickle/{}/subs'.format(main_exp)
-    # print("[DEBUG] current file: ", os.getcwd())
     all_files   = os.listdir(directory_subs)
     valid_files = []
     for k in range(30):
@@ -92,7 +90,6 @@ if __name__ == '__main__':
     iou_rat     = {'baseline': [], 'nonlinear': []}
     r_diff_raw_err   = {'baseline': [], 'nonlinear': []}
     t_diff_raw_err   = {'baseline': [], 'nonlinear': []}
-    # print("[DEBUG] TEST ITEMS: ", test_items)
     for key, file_name in result_files.items():
         if key == 'nonlinear':
             datas[key] = {}
@@ -107,16 +104,13 @@ if __name__ == '__main__':
             basenames[key] = list(datas[key].keys())
         else:
             with open(file_name, 'rb') as f:
-                # print("[DEBUG] filename: ", file_name)
                 # breakpoint()
                 datas[key] = pickle.load(f)
                 basenames[key] = list(datas[key].keys())
                 print('number of data for {} : {}'.format(key, len(basenames[key])))
 
     # for key, cur_data in datas.items():
-    #     print("[DEBUG] keys:", key)
     for key, cur_data in datas.items():
-        # print("[DEBUG] key: ", key)
         if key[-2:] == 'gt':
             continue
         # print('fetch error data for', key)
@@ -129,28 +123,23 @@ if __name__ == '__main__':
             frame_order    = name_info[2]
 
             if instance in ['45841']:
-                print("[DEBUG] Instance is in 45841")
+                print("Instance is in 45841")
                 continue
             if cur_data[ basename ]['scale'] is None or cur_data[ basename ]['scale'] is [] :
-                print("[DEBUG] Instance is not in scale")
+                print("Instance is not in scale")
                 continue
-            # print("[DEBUG] Cur_data[basename]: ", cur_data[ basename ])
             r_raw_err[key].append(cur_data[ basename ]['rpy_err'][key])
             t_raw_err[key].append(cur_data[ basename ]['xyz_err'][key])
 
-    # print("[DEBUG] r_raw_err: ", r_raw_err)
     print('For {} object, {} nocs, mean rotation err per part is: '.format(args.domain, args.nocs))
     for item in test_items:
-        # print("[DEBUG] item: ", item)
         r_raw_err[item] = np.array(r_raw_err[item])
         t_raw_err[item] = np.array(t_raw_err[item])
         t_raw_err[item][np.where(np.isnan(t_raw_err[item]))] = 0
         num_valid = r_raw_err[item].shape[0]
         # print(item + ' has numbers: ', r_raw_err[item].shape, t_raw_err[item].shape)
         r_err = []
-        # print("[DEBUG] r_raw_err: ", r_raw_err[item])
         for j in range(num_parts):
-            # print("[DEBUG] j: ", j)
             r_err.append(np.sum( r_raw_err[item][:, j] ) / num_valid)
         print(item[0:8], " ".join(["{:0.4f}".format(x) for x in r_err]))
     print('\n')
@@ -377,12 +366,10 @@ if __name__ == '__main__':
         print('\n')
 
     else:
-        # print("[DEBUG] r_diff_arr_err: ", r_diff_raw_err)
 
         print('For {} object, {} nocs, mean relative rotation err per part is: '.format(args.domain, args.nocs))
         for item in test_items:
             r_diff_arr = np.array(r_diff_raw_err[item])
-            # print("[DEBUG] r_diff_arr: ", r_diff_arr)
             r_diff_arr[np.where(np.isnan(r_diff_arr))] = 0
             num_valid  = r_diff_arr.shape[0]
             r_diff = []
