@@ -5,3 +5,4 @@ articulated-pose.code-workspace
 __pycache__/
 download_sapien.py
 lib/__pycache__/
+token.txt
