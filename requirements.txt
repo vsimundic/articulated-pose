@@ -50,6 +50,7 @@ cycler==0.10.0
 Cython==0.28.6
 dask==0.19.4
 dataclasses==0.8
+debugpy==1.5.0
 decorator==4.3.2
 defer==1.0.6
 defusedxml==0.7.1
