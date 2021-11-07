@@ -53,7 +53,7 @@ def traverse_dict(d, link_dict, joint_dict):
 if __name__ == '__main__':
     #>>>>>>>>>>>>>>>> you only need to change this part >>>>>>>>>>>>>
     is_debug  = False
-    dataset   = 'shape2motion' 
+    dataset   = 'sapien' 
     infos     = global_info()
     my_dir    = infos.base_path
     base_path = my_dir + '/dataset/' # with a lot of different objects, and then 0001/0002/0003/0004/0005
@@ -80,7 +80,7 @@ if __name__ == '__main__':
             #
             instance_name= sub_dir.split('/')[-1]
             print('Now working on {}, with instance {}'.format(obj_name, instance_name))
-            save_dir     = base_path + '/' + dataset  + '/urdf/{}/{}'.format(obj_name, instance_name) # todo
+            save_dir     = base_path + dataset  + '/urdf/{}/{}'.format(obj_name, instance_name) # todo
             json_name    = glob.glob(sub_dir + '/*.json')
             with open(json_name[0]) as json_file:
                 motion_attrs = json.load(json_file)

@@ -149,10 +149,10 @@ def joint_transformation_verifier(dataset, model, inlier_th):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--item', default='oven', help='object category for benchmarking')
+    parser.add_argument('--item', default='drawer', help='object category for benchmarking')
     parser.add_argument('--domain', default='unseen', help='which sub test set to choose')
-    parser.add_argument('--nocs', default='npcs', help='type of NOCS used to train the model')
-    parser.add_argument('--num_exp', default='3.01', help='name of experiment name')
+    parser.add_argument('--nocs', default='ANCSH', help='type of NOCS used to train the model')
+    parser.add_argument('--num_exp', default='3.3', help='name of experiment name')
     args = parser.parse_args()
 
     infos           = global_info()
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     print("[DEBUG] directory: ", directory + '/{}_{}_{}_rt.pkl'.format(args.domain, args.nocs, args.item))
     rts_all = pickle.load( open( directory + '/{}_{}_{}_rt.pkl'.format(args.domain, args.nocs, args.item), 'rb' ))
     
-    all_test_h5     = os.listdir(my_dir + '/results/test_pred/{}/'.format(args.num_exp))
+    all_test_h5     = os.listdir(my_dir + '/results/test_pred/{}/'.format(save_exp))
     test_group      = get_test_group(all_test_h5, unseen_instances, domain=args.domain, spec_instances=special_ins)
 
     file_name       = my_dir + '/results/pickle/{}/{}_{}_{}_rt_pn.pkl'.format(save_exp, args.domain, args.nocs, args.item)
@@ -200,14 +200,14 @@ if __name__ == '__main__':
             #     print('\n')
             #     continue
             basename = test_group[i].split('.')[0]
-            print("[DEBUG] BASENAME: ", basename)
+            # print("[DEBUG] BASENAME: ", basename)
             # for key, _ in rts_all.items():
             #     print("[DEBUG]", key)
             rts_dict = rts_all[basename]
             scale_gt = rts_dict['scale']['gt'] # list of 2, for part 0 and part 1
             rt_gt    = rts_dict['rt']['gt']    # list of 2, each is 4*4 Hom transformation mat, [:3, :3] is rotation
             # nocs_err_pn   = rts_dict['nocs_err']
-            f = h5py.File(my_dir + '/results/test_pred/{}/{}.h5'.format(args.num_exp, basename), 'r')
+            f = h5py.File(my_dir + '/results/test_pred/{}/{}.h5'.format(save_exp, basename), 'r')
             print('using part nocs prediction')
             nocs_pred = f['nocs_per_point']
             nocs_gt   = f['nocs_gt']

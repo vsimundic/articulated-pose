@@ -208,7 +208,8 @@ class Network(object):
                 step, _, summary, loss = sess.run([self.global_step, self.train_op, self.summary, self.total_loss], feed_dict=feed_dict)
 
                 elapsed_min = (time.time() - start_time) / 60
-                print('Epoch: {:d} | Step: {:d} | Batch Loss: {:6f} | Elapsed: {:.2f}m'.format(epoch, step, loss, elapsed_min))
+                if step % 100 == 0:
+                    print('Epoch: {:d} | Step: {:d} | Batch Loss: {:6f} | Elapsed: {:.2f}m'.format(epoch, step, loss, elapsed_min))
 
                 if step >= self.config.get_writer_start_step():
                     train_writer.add_summary(summary, step)
@@ -326,7 +327,7 @@ class Network(object):
                 is_mixed=self.is_mixed,
                 W_reduced=False
             )
-            print('Finished {}/{}'.format(dset.get_last_batch_range()[1], dset.n_data), end='\n')
+        print('Finished {}/{}'.format(dset.n_data, dset.n_data))
         losses.update((x, y / dset.n_data) for x, y in losses.items())
         msg = self.format_loss_result(losses)
         open(os.path.join(save_dir, 'test_loss.txt'), 'w').write(msg)

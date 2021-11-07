@@ -81,7 +81,7 @@ if __name__ == '__main__':
     in_model_dir = conf.get_in_model_dir()
 
     ckpt = tf.train.get_checkpoint_state(in_model_dir)
-    should_restore = (ckpt is not None) and (ckpt.model_checkpoint_path is not None) and False
+    should_restore = (ckpt is not None) and (ckpt.model_checkpoint_path is not None)
     net = Network(n_max_parts=n_max_parts, config=conf, is_new_training=not should_restore, dataset_name=args.dataset)
 
     with tf.Session(config=tf_conf, graph=net.graph) as sess:

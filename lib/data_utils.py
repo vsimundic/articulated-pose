@@ -117,7 +117,7 @@ def split_dataset(root_dset, ctgy_objs, args, test_ins, spec_ins=[], train_ins=N
 
             for instance in test_ins:
                 # for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/test/' + instance + '/*'):
-                for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + instance + '/*'):
+                for dir_arti in glob.glob(root_dset + '/hdf5/' + name_obj + '/' + instance + '/*'):
                     h5_frames = glob.glob(dir_arti + '/*')
                     h5_list   = []
                     for file in h5_frames:
@@ -246,9 +246,9 @@ def get_urdf_mobility(inpath, verbose=True):
         num_links += 1
         index_link = None
         if link.attrib['name']=='base':
-            index_link = 0
+            continue
         else:
-            index_link = int(link.attrib['name'].split('_')[1]) + 1 # since the name is base, link_0, link_1
+            index_link = int(link.attrib['name'].split('_')[1]) # since the name is base, link_0, link_1
         list_xyz[index_link] = []
         list_rpy[index_link] = []
         list_obj[index_link] = []
@@ -326,7 +326,7 @@ def get_urdf_mobility(inpath, verbose=True):
 
     urdf_ins['joint']    = rpy_xyz
     urdf_ins['num_links']= num_real_links
-    if verbose:
+    if verbose and False:
         for j, pos in enumerate(urdf_ins['link']['xyz']):
             if len(pos) > 3:
                 print('link {} xyz: '.format(j), pos[0])

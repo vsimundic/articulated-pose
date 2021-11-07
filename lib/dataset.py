@@ -194,13 +194,13 @@ class Dataset:
             offsets     = None
             for item in all_items:
                 if self.name_dset == 'sapien':
-                    path_urdf = self.root_dir + '/objects/' + '/' + obj_category + '/' + item
+                    path_urdf = self.root_dir + '/objects' + '/' + obj_category + '/' + item
                     urdf_ins   = get_urdf_mobility(path_urdf)
                 elif self.name_dset == 'shape2motion':
-                    path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
+                    path_urdf = self.root_dir + '/urdf' + '/' + obj_category
                     urdf_ins   = get_urdf("{}/{}".format(path_urdf, item))
                 else:
-                    path_urdf = self.root_dir + '/urdf/' + '/' + obj_category
+                    path_urdf = self.root_dir + '/urdf' + '/' + obj_category
                     urdf_ins   = get_urdf("{}/{}".format(path_urdf, item))
                 pts, norm_factors, corner_pts = get_model_pts(self.root_dir, self.ctgy_obj, item, obj_file_list=urdf_ins['obj_name'],  offsets=offsets , is_debug=is_debug)
                 all_factors[item]        = norm_factors
@@ -605,7 +605,7 @@ class Dataset:
             joint_index       = [[], [], [], [], []] # joint index recording the corresponding parts
 
         # fetch link & joint offsets from urdf_ins
-        link_xyz = joints['link']['xyz'][1:] # we only need to consider link xyz, n_parts
+        link_xyz = joints['link']['xyz'][:-1] # we only need to consider link xyz, n_parts
         joint_rpy = joints['joint']['rpy']
         joint_xyz = joints['joint']['xyz']
         joint_axis= joints['joint']['axis']
@@ -617,13 +617,16 @@ class Dataset:
         joint_params = np.zeros((n_parts, 7))
         if line_space == 'plucker':
             joint_params = np.zeros((n_parts, 6))
-
+        
         for idx, group in enumerate(parts_map):
             # if idx == 0:
             #     continue
             P_ = f['gt_points']
-            print([key for key in P_.keys()])
+            # print([key for key in P_.keys()])
+            
+            # P = []
             P = P_[str(group[0])][()][:, :3]
+
             for i in range(1, len(group)):
                 P = np.concatenate((P, f['gt_points'][str(group[i])][()][:, :3]), axis=0)
             parts_pts[idx] = P              # input pt cloud

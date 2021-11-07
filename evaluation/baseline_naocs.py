@@ -159,8 +159,8 @@ def joint_transformation_verifier(dataset, model, inlier_th):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', default='unseen', help='domain to choose')
-    parser.add_argument('--nocs', default='global', help='nocs type to choose')
-    parser.add_argument('--item', default='eyeglasses', help='object category for benchmarking')
+    parser.add_argument('--nocs', default='ANCSH', help='nocs type to choose')
+    parser.add_argument('--item', default='drawer', help='object category for benchmarking')
     args = parser.parse_args()
 
     infos           = global_info()
@@ -191,7 +191,10 @@ if __name__ == '__main__':
     all_rts     = {}
     
     all_bad     = []
-    problem_ins = []
+
+    bad_file_path = test_h5_path + '/bad.txt'
+    with open(bad_file_path, 'r') as fbad:
+        problem_ins = [bad_file.split('\n')[0] for bad_file in fbad]
 
     if num_parts   == 2:
         r_raw_err   = {'baseline': [[], []], 'nonlinear': [[], []]}
@@ -210,13 +213,9 @@ if __name__ == '__main__':
     for i in tqdm(range(len(test_group))):
         try:
             print('\n Checking {}th data point: {}'.format(i, test_group[i]))
-            if test_group[i].split('_')[0] in problem_ins:
+            if test_group[i] in problem_ins:
                 continue
             basename = test_group[i].split('.')[0]
-            # print("[DEBUG] rts_all: ", rts_all)
-
-            print("[DEBUG] is_key_in: ", True if basename in rts_all else False)
-            print("[DEBUG] basename: ", basename)
 
             rts_dict      = rts_all[basename]
             scale_gt = rts_dict['scale']['gt'] # list of 2, for part 0 and part 1
@@ -291,9 +290,10 @@ if __name__ == '__main__':
             rts_dict['scale_err'] = scale_err
             all_rts[basename]   = rts_dict
 
-            # print("[DEBUG] rts_dict: ", rts_dict)
-            # for key, val in rts_dict.items():
-            #     print("[DEBUG] key: ", key)
+        # print("[DEBUG] rts_dict: ", rts_dict)
+        # for key, val in rts_dict.items():
+        #     print("[DEBUG] key: ", key)
+
         except Exception as e:
             print(f'wrong entry with {i}th data!!')
             exc_type, exc_obj, exc_tb = sys.exc_info()

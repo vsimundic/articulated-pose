@@ -153,7 +153,8 @@ def get_per_point_model_new(scope, P, n_max_parts, is_training, bn_decay, early_
         # trans_per_points_tiled = tf.tile(trans_per_points, [1, 1, n_max_parts])
         scale_per_points_tiled = tf.reshape(tf.tile(tf.expand_dims(scale_per_points, -1), [1, 1, 1, 3]), [tf.shape(scale_per_points)[0], tf.shape(scale_per_points)[1], 3*n_max_parts])
         trans_per_points_tiled = trans_per_points   
-        assert trans_per_points_tiled.get_shape().as_list()[2] ==  scale_per_points_tiled.get_shape().as_list()[2] == 3* n_max_parts, print(scale_per_points_tiled.get_shape().as_list()[2],  trans_per_points_tiled.get_shape().as_list()[2])
+        assert trans_per_points_tiled.get_shape().as_list()[2] ==  scale_per_points_tiled.get_shape().as_list()[2] == 3* n_max_parts 
+        print(scale_per_points_tiled.get_shape().as_list()[2],  trans_per_points_tiled.get_shape().as_list()[2])
         pred['gocs_per_point'] = nocs_per_points  * scale_per_points_tiled + trans_per_points_tiled
         pred['global_scale']   = scale_per_points
         pred['global_translation'] = trans_per_points

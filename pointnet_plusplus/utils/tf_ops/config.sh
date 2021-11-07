@@ -11,4 +11,3 @@ tensorflow_external_dir=$CONDA_ENV_DIR/lib/python3.6/site-packages/tensorflow_co
 
 cuda_library_dir=$CUDA_DIR/lib64/
 tensorflow_library_dir=$CONDA_ENV_DIR/lib/python3.6/site-packages/tensorflow_core
-

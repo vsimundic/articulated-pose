@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', default='unseen', help='which sub test set to choose')
     parser.add_argument('--nocs', default='ANCSH', help='which sub test set to choose')
-    parser.add_argument('--item', default='eyeglasses', help='object category for benchmarking')
+    parser.add_argument('--item', default='drawer', help='object category for benchmarking')
     args = parser.parse_args()
 
     infos           = global_info()

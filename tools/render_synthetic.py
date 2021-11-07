@@ -24,6 +24,7 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from yaml import CLoader as Loader, CDumper as Dumper
 from yaml.representer import SafeRepresenter
+
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 def dict_representer(dumper, data):
@@ -208,6 +209,10 @@ def render_data(data_root, name_dataset, name_obj, cur_urdf, args=None, cam_dis=
                 rgb       = img_arr[2]
                 depth_raw = img_arr[3].astype(np.float32)
                 mask      = img_arr[4]
+                # print((mask > 0))
+                # mask = np.logical_and(mask > 0, mask <= num_joints)
+                # mask = np.where(mask > 0 and mask <= num_joints, mask - 1, mask)
+
                 depth     = 255.0 * nearPlane / (farPlane - (farPlane - nearPlane) * depth_raw) # *farPlane/255.0
                 far       = farPlane
                 near      = nearPlane
@@ -276,16 +281,16 @@ if __name__ == "__main__":
     parser.add_argument('--dis',   default=3, help='default camera2object distance')
     parser.add_argument('--mode',  default='train', help='mode decides saving folder:train/demo')
     parser.add_argument('--roll', default='30,40', help='camera view angle')
-    parser.add_argument('--pitch', default='30,40', help='camera view angle')
-    parser.add_argument('--yaw',  default='30,40', help='camera view angle')
+    parser.add_argument('--pitch', default='-60,5', help='camera view angle')
+    parser.add_argument('--yaw',  default='-150,-30', help='camera view angle')
     parser.add_argument('--min_angles',  default='30,40,50,60', help='minimum joint angles')
     parser.add_argument('--max_angles',  default='30,40,50,60', help='maximum joint angles')
     parser.add_argument('--cnt', default=30, help='count of articulation change')
-    parser.add_argument('--num', default=10, help='number of rendering per articulation')
+    parser.add_argument('--num', default=40, help='number of rendering per articulation')
     args = parser.parse_args()
     #>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>>>>>>>#
 
-    is_debug = args.debug
+    is_debug = args.debug or True
     if is_debug:
         _WRITE   = False
         _RENDER  = True

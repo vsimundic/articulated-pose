@@ -1,3 +1,9 @@
+# import os, sys
+# import argparse
+# BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+# sys.path.append(os.path.join(BASE_DIR, 'lib'))
+# sys.path.append(os.path.join(BASE_DIR, '..'))
+
 from global_info import global_info
 from lib.data_utils import collect_file, split_dataset
 from lib.vis_utils import plot3d_pts
@@ -324,11 +330,11 @@ class PoseDataset():
             parts_model2world[k] = my_model2world_mat
 
         # depth to cloud data
-        mask = np.array((label[:, :] < num_parts) & (
+        mask = np.array((label[:, :] <= num_parts) & (
             label[:, :] > -1)).astype(np.uint8)
         # mask_whole = np.copy(mask)
         for n in temp_num_parts_range:
-            parts_mask[n] = np.array((label[:, :] == (n))).astype(np.uint8)
+            parts_mask[n] = np.array((label[:, :] == (n+1))).astype(np.uint8)
             choose_to_whole[n] = np.where(parts_mask[n] > 0)
 
         #>>>>>>>>>>------- rendering target pcloud from depth image --------<<<<<<<<<#
@@ -430,13 +436,13 @@ class PoseDataset():
         hf.create_dataset('mask', data=mask)
         cloud_cam = hf.create_group('gt_points')
         for part_i, points in enumerate(parts_cloud_cam):
-            if name_dataset == 'sapien' and part_i == 0:
-                continue
+            # if name_dataset == 'sapien' and part_i == 0:
+            #     continue
             cloud_cam.create_dataset(str(part_i), data=points)
         coord_gt = hf.create_group('gt_coords')
         for part_i, points in enumerate(parts_cloud_urdf):
-            if name_dataset == 'sapien' and part_i == 0:
-                continue
+            # if name_dataset == 'sapien' and part_i == 0:
+            #     continue
 
             coord_gt.create_dataset(str(part_i), data=points)
         hf.close()
@@ -483,12 +489,14 @@ if __name__ == '__main__':
     infos = global_info()
     my_dir = infos.base_path
     root_dset = my_dir + '/dataset/' + name_dataset
+    root_dset = '/media/valentin/data/POSAO/articulated-pose' + '/dataset/' + name_dataset
     # default None, if specifies, will only choose specified instances
-    selected_list = infos.datasets[item].train_list
+    # selected_list = infos.datasets[item].train_list
+    selected_list = None
     #>>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>#
 
-    # # 1. collect filenames into all.txt, then create dataset object
-    # collect_file(root_dset, [item], mode=args.mode)
+    # 1. collect filenames into all.txt, then create dataset object
+    collect_file(root_dset, [item], mode=args.mode)
     PoseData = PoseDataset(root_dset, item, is_debug=args.debug,
                            mode=args.mode, selected_list=selected_list)
     print('number of images: ', len(PoseData.list_rgb))
