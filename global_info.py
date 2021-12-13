@@ -158,8 +158,8 @@ _DATASETS = dict(
         num_parts=4,
         train_size=13000,
         test_size=3480,
-        train_list=['40453', '44962', '45132',
-                    '45290', '46130', '46334',  '46462',
+        train_list=[# '40453', '44962', '45132',
+                    # '45290', '46130', '46334',  '46462',
                     '46537', '46544', '46641', '47178', '47183',
                     '47296', '47233', '48010', '48253',  '48517',
                     '48740', '48876', '46230', '44853', '45135',
@@ -189,8 +189,8 @@ class global_info(object):
         # model/: put all training profiles & checkpoints;
         # results/: put network raw predictions + pose estimation results + error evaluation results;
         # dataset/: all data we use
-        self.base_path = '/media/valentin/data/POSAO/articulated-pose'
-        self.group_path= '/media/valentin/data/POSAO/articulated-pose' # useful when we have additional dataset;
+        self.base_path = '.'
+        self.group_path= '.' # useful when we have additional dataset;
 
 if __name__ == '__main__':
     infos = global_info()

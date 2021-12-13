@@ -285,12 +285,12 @@ if __name__ == "__main__":
     parser.add_argument('--yaw',  default='-150,-30', help='camera view angle')
     parser.add_argument('--min_angles',  default='30,40,50,60', help='minimum joint angles')
     parser.add_argument('--max_angles',  default='30,40,50,60', help='maximum joint angles')
-    parser.add_argument('--cnt', default=30, help='count of articulation change')
-    parser.add_argument('--num', default=40, help='number of rendering per articulation')
+    parser.add_argument('--cnt', default=20, help='count of articulation change')
+    parser.add_argument('--num', default=20, help='number of rendering per articulation')
     args = parser.parse_args()
     #>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>>>>>>>#
 
-    is_debug = args.debug or True
+    is_debug = args.debug
     if is_debug:
         _WRITE   = False
         _RENDER  = True
