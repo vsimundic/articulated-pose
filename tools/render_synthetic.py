@@ -290,7 +290,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #>>>>>>>>>>>>>>>>>>>>>>>> config end here >>>>>>>>>>>>>>>>>>>>>>>>>#
 
-    is_debug = args.debug
+    is_debug = args.debug or True
     if is_debug:
         _WRITE   = False
         _RENDER  = True

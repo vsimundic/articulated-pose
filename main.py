@@ -2,7 +2,7 @@ import os, sys
 import argparse
 BASE_DIR = os.path.dirname(__file__)
 sys.path.append(os.path.join(BASE_DIR, 'lib'))
-sys.path.append(os.path.join(BASE_DIR, '..'))
+sys.path.append(os.path.join(BASE_DIR, '.'))
 
 #>>>>>>>>>>>>>>>>>> custom packages
 from network_config import NetworkConfig

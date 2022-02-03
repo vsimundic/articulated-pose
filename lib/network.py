@@ -68,7 +68,7 @@ class Network(object):
                     early_split_nocs=self.early_split_nocs
                 )
             else:
-                self.pred_dict = architecture.get_per_point_model(
+                self.pred_dict = architecture.get_per_point_model_new(
                     scope='SPFN',
                     P=self.P,
                     n_max_parts=n_max_parts,

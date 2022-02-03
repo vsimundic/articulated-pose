@@ -1,8 +1,8 @@
-# import os, sys
-# import argparse
-# BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-# sys.path.append(os.path.join(BASE_DIR, 'lib'))
-# sys.path.append(os.path.join(BASE_DIR, '..'))
+import os, sys
+import argparse
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(os.path.join(BASE_DIR, 'lib'))
+sys.path.append(os.path.join(BASE_DIR, '.'))
 
 from global_info import global_info
 from lib.data_utils import collect_file, split_dataset
@@ -489,7 +489,7 @@ if __name__ == '__main__':
     infos = global_info()
     my_dir = infos.base_path
     root_dset = my_dir + '/dataset/' + name_dataset
-    root_dset = '/media/valentin/data/POSAO/articulated-pose' + '/dataset/' + name_dataset
+    root_dset = '/media/valentin/T7/FERIT/POSAO/COSPER/articulated-pose' + '/another_folder/dataset/' + name_dataset
     # default None, if specifies, will only choose specified instances
     # selected_list = infos.datasets[item].train_list
     selected_list = None
@@ -501,9 +501,9 @@ if __name__ == '__main__':
                            mode=args.mode, selected_list=selected_list)
     print('number of images: ', len(PoseData.list_rgb))
 
-    # # 2. preprocess and save
-    for i in tqdm(range(0, len(PoseData.list_rgb))):
-        data = PoseData.__preprocess_and_save__(i)
+    # # # 2. preprocess and save
+    # for i in tqdm(range(0, len(PoseData.list_rgb))):
+    #     data = PoseData.__preprocess_and_save__(i)
 
     # 3. split .h5 data into train & test
     split_dataset(root_dset, [item], args, test_ins=infos.datasets[item].test_list,
